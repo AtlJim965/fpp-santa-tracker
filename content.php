@@ -537,11 +537,20 @@ $fppsantatrackerBoot = array(
     for (var label in map) { if (map[label] === key) return label; }
     return 'Right now';
   }
+  var pollSoon = null;
   function pollStatus() {
     api('GET', 'santa-status').then(function (j) {
-      var on = !!(j && j.running), b = $('#sStatus');
-      b.className = 'badge rounded-pill ' + (on ? 'text-bg-success' : 'text-bg-secondary');
-      b.textContent = on ? 'Running' : 'Stopped';
+      var on = !!(j && j.running), showing = !!(j && j.showing), b = $('#sStatus');
+      // a preview / Show Once is a short separate run; the running display
+      // (Start display) comes back after it if it was on
+      var cls = showing ? 'text-bg-info' : on ? 'text-bg-success' : 'text-bg-secondary';
+      var txt = showing ? (on ? 'Running (showing a preview)' : 'Showing a preview') : on ? 'Running' : 'Stopped';
+      b.className = 'badge rounded-pill ' + cls;
+      b.textContent = txt;
+      b.title = showing ? 'A Show Once or Preview is on the matrix right now'
+        : on ? 'The display is running (Start display) and keeps updating until Stop'
+        : 'The continuous display is off. Show on matrix and Show Once still work.';
+      if (showing && !pollSoon) pollSoon = setTimeout(function () { pollSoon = null; pollStatus(); }, 3000);
     });
   }
 

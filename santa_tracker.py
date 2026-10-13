@@ -1465,7 +1465,13 @@ def main():
     if a.status:
         copies = running_copies()
         loop = [p for p, argv in copies if "--loop" in argv]
-        print(json.dumps({"ok": True, "running": bool(loop), "pids": [p for p, _ in copies]}))
+        once = [p for p, argv in copies if "--once" in argv]
+        # a Show Once / Preview that interrupted the running display hands the
+        # matrix back to it afterwards, so the display still counts as running
+        resuming = any(os.path.exists(os.path.join(ensure_data_dir(), f"resume_{p}.json"))
+                       for p in once)
+        print(json.dumps({"ok": True, "running": bool(loop) or resuming,
+                          "showing": bool(once), "pids": [p for p, _ in copies]}))
         return 0
     if a.stop:
         n = stop_all()
@@ -1540,6 +1546,23 @@ def main():
         except Exception as e:
             log(f"Couldn't replace PID {pid}: {e}")
     wait_gone([p for p, _ in copies])
+    try:                                          # leftovers from killed copies
+        for fn in os.listdir(ensure_data_dir()):
+            if fn.startswith("resume_") and fn.endswith(".json"):
+                pid = fn[7:-5]
+                if not (pid.isdigit() and os.path.exists(f"/proc/{pid}")):
+                    os.remove(os.path.join(DATA_DIR, fn))
+    except Exception:
+        pass
+    marker = None
+    if resume:
+        # lets --status report the display as still running meanwhile
+        marker = os.path.join(ensure_data_dir(), f"resume_{os.getpid()}.json")
+        try:
+            with open(marker, "w") as f:
+                json.dump(resume, f)
+        except Exception:
+            marker = None
 
     def on_term(*_):
         nonlocal resume
@@ -1611,6 +1634,11 @@ def main():
             if a.once:
                 break
     finally:
+        if marker:
+            try:
+                os.remove(marker)
+            except Exception:
+                pass
         if resume:
             relaunch(resume)
     return 0
