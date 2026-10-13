@@ -268,9 +268,11 @@ function fppsantatracker_http($method, $path, $body = null) {
         'method' => $method,
         'timeout' => 15,
         'ignore_errors' => true,
-        'header' => "Content-Type: application/json\r\n",
     ));
+    // JSON header only with a body: FPP's API treats a request marked JSON as
+    // carrying its parameters in the body, and a GET marked that way crashes it
     if ($body !== null) {
+        $opts['http']['header'] = "Content-Type: application/json\r\n";
         $opts['http']['content'] = json_encode($body);
     }
     $resp = @file_get_contents('http://127.0.0.1' . $path, false, stream_context_create($opts));

@@ -294,8 +294,15 @@ $fppsantatrackerBoot = array(
   function api(method, path, body) {
     // cache: 'no-store' plus a unique query string, so the browser never
     // answers from a saved copy (status would otherwise stick on its first reply)
-    var opts = { method: method, cache: 'no-store', headers: { 'Content-Type': 'application/json' } };
-    if (body !== undefined) opts.body = JSON.stringify(body);
+    // Only say "JSON" when there is a body: FPP's API (limonade) replaces the
+    // request's parameters with the decoded body for any request marked
+    // application/json, so a GET marked that way crashes FPP before it
+    // reaches the plugin ("array_key_exists(): ... null given").
+    var opts = { method: method, cache: 'no-store' };
+    if (body !== undefined) {
+      opts.headers = { 'Content-Type': 'application/json' };
+      opts.body = JSON.stringify(body);
+    }
     var url = API + path + (method === 'GET' ? (path.indexOf('?') < 0 ? '?' : '&') + '_=' + Date.now() : '');
     return fetch(url, opts).then(function (r) {
       return r.text().then(function (t) {
