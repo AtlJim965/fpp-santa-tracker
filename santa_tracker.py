@@ -1422,9 +1422,16 @@ def stop_all(clear=True):
     return len(copies)
 
 
-# Each copy driving the matrix leaves a small note (run_<pid>.json) while it
-# runs. The settings page reads these for its status: it runs as a different
-# user from fppd, and can't always see fppd's processes in /proc.
+# Each copy driving the matrix leaves a small note (run_<pid>.json) and
+# touches it every few seconds while it runs. The settings page reads these
+# for its status: it runs under the web server, which on some systems can't
+# see fppd's processes at all (not in /proc, not even with kill), so a note
+# that is still being touched is the only sign it can trust.
+HEARTBEAT = 10           # seconds between touches
+HEARTBEAT_STALE = 35     # older than this: that copy has gone
+_note_done = None        # set when this copy removes its note on the way out
+
+
 def _alive(pid):
     try:
         os.kill(pid, 0)
@@ -1435,13 +1442,16 @@ def _alive(pid):
         return False
 
 
-def run_notes():
-    """[{pid, mode, resuming}] for copies that are still running."""
+def run_notes(tidy=False):
+    """[{pid, mode, resuming, ...}] for copies whose note is still fresh.
+    tidy=True (only from a copy that drives the matrix) also deletes notes of
+    copies that are gone."""
     out = []
     try:
         names = os.listdir(DATA_DIR)
     except Exception:
         return out
+    now = time.time()
     for fn in names:
         if not (fn.startswith("run_") and fn.endswith(".json")):
             continue
@@ -1449,11 +1459,16 @@ def run_notes():
         if not pid.isdigit() or int(pid) == os.getpid():
             continue
         path = os.path.join(DATA_DIR, fn)
-        if not _alive(int(pid)):
-            try:
-                os.remove(path)
-            except Exception:
-                pass
+        try:
+            fresh = now - os.path.getmtime(path) < HEARTBEAT_STALE
+        except Exception:
+            continue
+        if not fresh:
+            if tidy and not _alive(int(pid)):
+                try:
+                    os.remove(path)
+                except Exception:
+                    pass
             continue
         try:
             with open(path) as f:
@@ -1468,15 +1483,36 @@ def run_notes():
 def write_run_note(mode, resuming):
     path = os.path.join(ensure_data_dir(), f"run_{os.getpid()}.json")
     try:
-        run_notes()                 # tidies notes left by killed copies
+        run_notes(tidy=True)        # tidies notes left by killed copies
         with open(path, "w") as f:
             json.dump({"mode": mode, "resuming": resuming, "started": int(time.time()),
                        "argv": [PYTHON, SCRIPT_PATH] + sys.argv[1:]}, f)
         os.chmod(path, 0o644)
-        return path
     except Exception as e:
         log(f"Couldn't write the status note: {e}")
         return None
+
+    global _note_done
+    import threading
+    _note_done = threading.Event()
+
+    def beat():
+        while not _note_done.wait(HEARTBEAT):
+            try:
+                os.utime(path)
+            except FileNotFoundError:
+                if _note_done.is_set():
+                    break
+                try:                # put it back if something removed it
+                    with open(path, "w") as f:
+                        json.dump({"mode": mode, "resuming": resuming,
+                                   "argv": [PYTHON, SCRIPT_PATH] + sys.argv[1:]}, f)
+                except Exception:
+                    pass
+            except Exception:
+                pass
+    threading.Thread(target=beat, daemon=True).start()
+    return path
 
 
 def relaunch(argv):
@@ -1679,6 +1715,7 @@ def main():
                 break
     finally:
         if note:
+            _note_done.set()
             try:
                 os.remove(note)
             except Exception:
