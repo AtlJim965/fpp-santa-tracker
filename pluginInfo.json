@@ -2,17 +2,62 @@
     "repoName": "fpp-santa-tracker",
     "name": "Santa Tracker",
     "author": "Jimson Circle of Lights",
-    "description": "Shows Santa's live position on a Pixel Overlay Model: a world map with Santa, his trail and your town, plus a countdown or an info panel (city, distance, gifts delivered), or a scrolling message. Settings page with live preview. Downloads Santa's route from Google's Santa Tracker (firebasestorage.googleapis.com) and a world coastline outline (raw.githubusercontent.com, cdn.jsdelivr.net or d2ad6b4ur7yvpq.cloudfront.net). Nothing about you or your show is sent anywhere.",
+    "description": "Shows Santa's live position on a Pixel Overlay Model: a world map with Santa, his trail and your town, with a Christmas Eve countdown or an info panel (city, distance, gifts delivered), or a scrolling message. Settings page with a live preview, plus FPP Commands to start, stop and preview it. While in use it downloads Google's public Santa Tracker route (firebasestorage.googleapis.com) and, once, a public-domain world outline (raw.githubusercontent.com, with cdn.jsdelivr.net and d2ad6b4ur7yvpq.cloudfront.net as fallbacks). Nothing about you or your show is sent. Map frames are written to FPP's images folder as santa_map_*.png and cleaned up automatically.",
     "homeURL": "https://github.com/AtlJim965/fpp-santa-tracker",
     "srcURL": "https://github.com/AtlJim965/fpp-santa-tracker.git",
     "bugURL": "https://github.com/AtlJim965/fpp-santa-tracker/issues",
+    "iconURL": "https://raw.githubusercontent.com/AtlJim965/fpp-santa-tracker/main/icon.png",
     "allowUpdates": 1,
     "versions": [
         {
             "minFPPVersion": "10.0",
             "maxFPPVersion": "0",
             "branch": "main",
-            "sha": ""
+            "sha": "",
+            "platforms": [
+                "Raspberry Pi",
+                "BeagleBone Black",
+                "BeagleBone 64",
+                "Armbian",
+                "Debian",
+                "Ubuntu",
+                "Fedora"
+            ]
         }
-    ]
+    ],
+    "privacy": {
+        "summary": "Downloads Google's public Santa route and a world map outline so it can draw Santa on your matrix. Sends nothing about you or your show.",
+        "sends": [
+            {
+                "to": "firebasestorage.googleapis.com",
+                "what": "A plain download request for Google's public Santa Tracker route file. No settings or show data.",
+                "why": "To know where Santa is on Christmas Eve.",
+                "alwaysOn": false
+            },
+            {
+                "to": "raw.githubusercontent.com",
+                "what": "A plain download request for the Natural Earth world outline. No settings or show data.",
+                "why": "To draw the world map. Downloaded once and saved.",
+                "alwaysOn": false
+            },
+            {
+                "to": "cdn.jsdelivr.net",
+                "what": "The same world outline download, only if the first source fails.",
+                "why": "Fallback source for the world map.",
+                "alwaysOn": false
+            },
+            {
+                "to": "d2ad6b4ur7yvpq.cloudfront.net",
+                "what": "The same world outline download, only if the first two sources fail.",
+                "why": "Fallback source for the world map.",
+                "alwaysOn": false
+            }
+        ],
+        "collects": [],
+        "sensors": [],
+        "remoteAccess": "none",
+        "systemChanges": [],
+        "closedCode": false,
+        "other": "The plugin author keeps no data. The route file is published by Google (privacy policy: https://policies.google.com/privacy); the world outline is public-domain Natural Earth data."
+    }
 }

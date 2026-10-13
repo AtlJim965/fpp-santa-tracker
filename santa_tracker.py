@@ -385,6 +385,22 @@ def add_home_stop(dests):
     return dests[:i + 1] + [home] + later
 
 
+def nearest_stop(dests):
+    """Closest real stop on Santa's route to your coordinates (a quick
+    check that the location is right)."""
+    hlat, hlng = home_latlng()
+    best = None
+    for d in dests[1:-1]:
+        if d.get("id") == "home_stop":
+            continue
+        mi = miles_between(hlat, hlng, d["location"]["lat"], d["location"]["lng"])
+        if best is None or mi < best[0]:
+            best = (mi, place(d))
+    if not best:
+        return None
+    return {"name": best[1], "miles": round(best[0]), "lat": hlat, "lng": hlng}
+
+
 def season_stops(dests, now_ms):
     dests = add_home_stop(dests)
     off = year_offset_ms(dests, now_ms)
@@ -533,7 +549,11 @@ def resolve_at(at, dests):
     for m in moments(dests, time.time() * 1000):
         if m["key"] == key:
             return m["ms"]
-    dt = datetime.fromisoformat(at)
+    try:
+        dt = datetime.fromisoformat(at)
+    except ValueError:
+        raise ValueError(f"Unknown moment '{at}'. Use a moment name such as "
+                         f"'7 days before' or a date-time like 2026-12-24T22:00")
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=tz())
     return dt.timestamp() * 1000
@@ -864,7 +884,7 @@ def draw_frame(st, land, W, H):
             cv.set(*map_xy(loc["lat"], loc["lng"], mw, H), trail)
     hlat, hlng = home_latlng()
     hx, hy = map_xy(hlat, hlng, mw, H)
-    for dx, dy in ((0, 0), (1, 0), (0, 1), (1, 1)):
+    for dx, dy in ((0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)):
         cv.set(hx + dx, hy + dy, cfg_color("HomeColor"))
     santa = cfg_color("SantaColor")
     sx, sy = map_xy(st["loc"]["lat"], st["loc"]["lng"], mw, H)
@@ -1067,6 +1087,22 @@ def show_text(text, duration):
     fpp_command("Overlay Model Effect", args)
 
 
+def wait_for_fpp(limit=90):
+    """Wait until fppd answers (it may still be starting). Checks every
+    3 seconds for at most `limit` seconds."""
+    end = time.time() + limit
+    while True:
+        try:
+            with urllib.request.urlopen(f"http://{FPP_HOST}/api/overlays/models", timeout=5) as r:
+                r.read()
+            return True
+        except Exception:
+            if time.time() >= end:
+                log("FPP isn't answering yet; carrying on anyway")
+                return False
+            time.sleep(3)
+
+
 # ------------------------------------------------------------- single copy
 def running_copies():
     """[(pid, argv)] of other copies of this script that drive the matrix."""
@@ -1162,7 +1198,7 @@ def main():
     if a.status:
         copies = running_copies()
         loop = [p for p, argv in copies if "--loop" in argv]
-        print(json.dumps({"running": bool(loop), "pids": [p for p, _ in copies]}))
+        print(json.dumps({"ok": True, "running": bool(loop), "pids": [p for p, _ in copies]}))
         return 0
     if a.stop:
         n = stop_all()
@@ -1182,7 +1218,14 @@ def main():
         print(json.dumps({"ok": True, "moments": moments(dests, time.time() * 1000)}))
         return 0
 
-    fake_start = resolve_at(a.at, dests)
+    try:
+        fake_start = resolve_at(a.at, dests)
+    except ValueError as e:
+        if a.preview_json:
+            print(json.dumps({"ok": False, "error": str(e)}))
+        else:
+            log(str(e))
+        return 2
     real_start = time.time() * 1000
 
     def now_ms():
@@ -1207,7 +1250,8 @@ def main():
             "height": H, "model": name, "text": text, "state": st["state"],
             "when": datetime.fromtimestamp(now_ms() / 1000, tz=tz())
                     .strftime("%a %b %d %Y, %I:%M %p").replace(" 0", " "),
-            "moments": moments(dests, time.time() * 1000)}))
+            "moments": moments(dests, time.time() * 1000),
+            "nearest": nearest_stop(dests)}))
         return 0
 
     if not (a.loop or a.once):
@@ -1245,7 +1289,10 @@ def main():
     signal.signal(signal.SIGINT, on_term)
     signal.signal(signal.SIGUSR1, on_replaced)
 
+    wait_for_fpp()
     mode = a.mode or cfg_str("DisplayMode").lower() or "map"
+    if mode not in ("map", "text", "both"):
+        mode = "map"
     map_secs = a.seconds if a.seconds else cfg_num("MapSeconds", 3, 3600)
     refresh = cfg_num("RefreshSeconds", 5, 3600)
     name, W, H = model_info()

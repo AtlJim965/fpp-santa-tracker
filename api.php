@@ -1,22 +1,22 @@
 <?php
-// REST endpoints for the Santa Tracker settings page.
-// All live under /api/plugin/fpp-santa-tracker/santa-... (names FPP's own
-// /api/plugin/<name>/settings routes can't collide with).
-include_once(__DIR__ . '/santa_common.php');
+// Santa Tracker API registrar. Only the endpoint list and its callbacks live
+// here; the shared code is loaded on demand so other FPP API calls aren't
+// affected. Endpoints: /api/plugin/fpp-santa-tracker/santa-...
 
 function getEndpointsfppsantatracker() {
     return array(
-        array('method' => 'GET',  'endpoint' => 'santa-config',      'callback' => 'fppsantatrackerGetSettings'),
-        array('method' => 'POST', 'endpoint' => 'santa-save',        'callback' => 'fppsantatrackerSaveSettings'),
-        array('method' => 'POST', 'endpoint' => 'santa-preview',     'callback' => 'fppsantatrackerPreview'),
-        array('method' => 'GET',  'endpoint' => 'santa-status',      'callback' => 'fppsantatrackerStatus'),
-        array('method' => 'POST', 'endpoint' => 'santa-run',         'callback' => 'fppsantatrackerAction'),
+        array('method' => 'GET',  'endpoint' => 'santa-config',  'callback' => 'fppsantatrackerGetSettings'),
+        array('method' => 'POST', 'endpoint' => 'santa-save',    'callback' => 'fppsantatrackerSaveSettings'),
+        array('method' => 'POST', 'endpoint' => 'santa-preview', 'callback' => 'fppsantatrackerPreview'),
+        array('method' => 'GET',  'endpoint' => 'santa-status',  'callback' => 'fppsantatrackerStatus'),
+        array('method' => 'POST', 'endpoint' => 'santa-run',     'callback' => 'fppsantatrackerAction'),
     );
 }
 
-// Any PHP problem comes back as a readable message instead of a blank reply.
-function fppsantatrackerSafe($fn) {
+// Load the shared code, run $fn, and always answer with JSON.
+function fppsantatrackerReply($fn) {
     try {
+        require_once(__DIR__ . '/santa_common.php');
         return json(call_user_func($fn));
     } catch (Throwable $e) {
         return json(array('ok' => false, 'error' => 'Santa Tracker error: ' . $e->getMessage()));
@@ -28,35 +28,35 @@ function fppsantatrackerBody() {
     return is_array($j) ? $j : array();
 }
 
-// GET /api/plugin/fpp-santa-tracker/santa-config
+// GET santa-config: saved settings plus defaults
 function fppsantatrackerGetSettings() {
-    return fppsantatrackerSafe(function () { return santaGetSettings(); });
+    return fppsantatrackerReply(function () { return fppsantatracker_get_settings(); });
 }
 
-// POST /api/plugin/fpp-santa-tracker/santa-save   body: {"CityName": "Conyers", ...}
+// POST santa-save   body: {"CityName": "Your Town", ...}
 function fppsantatrackerSaveSettings() {
-    return fppsantatrackerSafe(function () { return santaSaveSettings(fppsantatrackerBody()); });
+    $body = fppsantatrackerBody();
+    return fppsantatrackerReply(function () use ($body) { return fppsantatracker_save_settings($body); });
 }
 
-// POST /api/plugin/fpp-santa-tracker/santa-preview    body: {"settings": {...}, "at": "d7"}
+// POST santa-preview   body: {"settings": {...}, "at": "d7"}
 function fppsantatrackerPreview() {
     $b = fppsantatrackerBody();
     $values = isset($b['settings']) && is_array($b['settings']) ? $b['settings'] : array();
     $at = isset($b['at']) ? (string)$b['at'] : '';
-    return fppsantatrackerSafe(function () use ($values, $at) { return santaPreview($values, $at); });
+    return fppsantatrackerReply(function () use ($values, $at) { return fppsantatracker_preview($values, $at); });
 }
 
-// GET /api/plugin/fpp-santa-tracker/santa-status
+// GET santa-status
 function fppsantatrackerStatus() {
-    return fppsantatrackerSafe(function () { return santaStatus(); });
+    return fppsantatrackerReply(function () { return fppsantatracker_status(); });
 }
 
-// POST /api/plugin/fpp-santa-tracker/santa-run
-//   body: {"action": "start|stop|show|preview", "args": ["Saved setting", "20"]}
+// POST santa-run   body: {"action": "start|stop|show|preview", "args": [...]}
 function fppsantatrackerAction() {
     $b = fppsantatrackerBody();
     $args = isset($b['args']) && is_array($b['args']) ? $b['args'] : array();
     $action = isset($b['action']) ? strtolower(trim((string)$b['action'])) : '';
-    return fppsantatrackerSafe(function () use ($action, $args) { return santaAction($action, $args); });
+    return fppsantatrackerReply(function () use ($action, $args) { return fppsantatracker_action($action, $args); });
 }
 ?>

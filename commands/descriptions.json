@@ -1,0 +1,74 @@
+[
+    {
+        "name": "Santa Tracker - Start",
+        "script": "start.sh",
+        "description": "Start the Santa Tracker display. It keeps running and updating until Santa Tracker - Stop.",
+        "args": [
+            {
+                "name": "Display",
+                "description": "What to show",
+                "type": "string",
+                "contents": ["Saved setting", "Map", "Text", "Map then text"],
+                "default": "Saved setting",
+                "optional": false
+            }
+        ]
+    },
+    {
+        "name": "Santa Tracker - Stop",
+        "script": "stop.sh",
+        "description": "Stop the Santa Tracker display and clear the model.",
+        "args": []
+    },
+    {
+        "name": "Santa Tracker - Show Once",
+        "script": "show.sh",
+        "description": "Show Santa's current position once, then stop.",
+        "args": [
+            {
+                "name": "Display",
+                "description": "What to show",
+                "type": "string",
+                "contents": ["Saved setting", "Map", "Text", "Map then text"],
+                "default": "Saved setting",
+                "optional": false
+            },
+            {
+                "name": "Seconds",
+                "description": "Seconds to show the map",
+                "type": "int",
+                "min": 3,
+                "max": 600,
+                "default": "20",
+                "optional": false
+            }
+        ]
+    },
+    {
+        "name": "Santa Tracker - Preview",
+        "script": "preview.sh",
+        "description": "Show what the display will look like at another time.",
+        "args": [
+            {
+                "name": "Moment",
+                "description": "Moment to preview",
+                "type": "string",
+                "contents": ["Right now", "30 days before", "14 days before", "7 days before",
+                             "3 days before", "1 day before", "Christmas Eve - takeoff",
+                             "Christmas Eve - noon", "Christmas Eve - 6 PM", "Christmas Eve - 9 PM",
+                             "Approaching my town", "Santa in my town", "Christmas morning"],
+                "default": "Santa in my town",
+                "optional": false
+            },
+            {
+                "name": "Seconds",
+                "description": "Seconds to show it",
+                "type": "int",
+                "min": 3,
+                "max": 600,
+                "default": "20",
+                "optional": false
+            }
+        ]
+    }
+]
