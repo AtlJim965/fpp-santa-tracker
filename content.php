@@ -540,9 +540,10 @@ $fppsantatrackerBoot = array(
     return 'Right now';
   }
   var pollSoon = null;
-  var startingUntil = 0;     // after Start: keep "Starting..." until it reports in
+  var startingUntil = 0, lastStatus = null;     // after Start: keep "Starting..." until it reports in
   function pollStatus() {
     api('GET', 'santa-status').then(function (j) {
+      lastStatus = j;
       var on = !!(j && j.running), showing = !!(j && j.showing);
       var sb = $('#sStart');
       if (on) startingUntil = 0;
@@ -554,7 +555,8 @@ $fppsantatrackerBoot = array(
       }
       if (!on && startingUntil) {
         startingUntil = 0;
-        toast('The display didn\'t report that it started. Check logs/plugin-fpp-santa-tracker.log.', false);
+        toast('The display didn\'t report that it started. Last status reply: ' +
+          (lastStatus && !lastStatus.ok ? (lastStatus.error || 'error') : JSON.stringify(lastStatus)), false);
       }
       // Start button: blue "Start Display" when off, green "Running" while on
       sb.className = 'btn ' + (on ? 'btn-success' : 'btn-primary');
