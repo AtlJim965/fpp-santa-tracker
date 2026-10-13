@@ -20,7 +20,6 @@ $fppsantatrackerBoot = array(
 <div id="fppsantatracker" class="container-fluid px-0">
   <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
     <h2 class="h3 mb-0 me-2">Santa Tracker</h2>
-    <span class="badge rounded-pill text-bg-secondary" id="sStatus">Checking&hellip;</span>
     <div class="ms-auto d-flex gap-2">
       <button type="button" class="btn btn-primary" id="sStart"
               title="Runs until you press Stop (same as the 'Santa Tracker - Start' command)">Start Display</button>
@@ -540,16 +539,7 @@ $fppsantatrackerBoot = array(
   var pollSoon = null;
   function pollStatus() {
     api('GET', 'santa-status').then(function (j) {
-      var on = !!(j && j.running), showing = !!(j && j.showing), b = $('#sStatus');
-      // a preview / Show Once is a short separate run; the running display
-      // (Start display) comes back after it if it was on
-      var cls = showing ? 'text-bg-info' : on ? 'text-bg-success' : 'text-bg-secondary';
-      var txt = showing ? (on ? 'Running (showing a preview)' : 'Showing a preview') : on ? 'Running' : 'Stopped';
-      b.className = 'badge rounded-pill ' + cls;
-      b.textContent = txt;
-      b.title = showing ? 'A Show Once or Preview is on the matrix right now'
-        : on ? 'The display is running (Start display) and keeps updating until Stop'
-        : 'The continuous display is off. Show on matrix and Show Once still work.';
+      var on = !!(j && j.running), showing = !!(j && j.showing);
       // Start button: blue "Start display" when off, green "Running" while on
       var sb = $('#sStart');
       sb.className = 'btn ' + (on ? 'btn-success' : 'btn-primary');
@@ -630,7 +620,12 @@ $fppsantatrackerBoot = array(
   });
   $('#sStart').addEventListener('click', function () {
     (isDirty() ? save() : Promise.resolve(true)).then(function (ok) {
-      if (ok) action('start', ['Saved setting']).then(function (j) { if (j.ok) toast('Display started.', true); });
+      if (!ok) return;
+      var sb = $('#sStart');
+      sb.className = 'btn btn-success'; sb.textContent = 'Starting\u2026';
+      action('start', ['Saved setting']).then(function (j) {
+        if (j.ok) toast('Display started.', true); else pollStatus();
+      });
     });
   });
   $('#sStop').addEventListener('click', function () {

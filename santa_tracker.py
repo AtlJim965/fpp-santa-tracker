@@ -1390,6 +1390,10 @@ def running_copies():
             continue
         if any(a in argv for a in ("--loop", "--once")):
             found.append((int(pid), argv))
+    seen = {p for p, _ in found}
+    for n in run_notes():           # copies this process can't see in /proc
+        if n["pid"] not in seen and n.get("argv"):
+            found.append((n["pid"], n["argv"]))
     return found
 
 
@@ -1416,6 +1420,63 @@ def stop_all(clear=True):
     if clear:
         clear_matrix()
     return len(copies)
+
+
+# Each copy driving the matrix leaves a small note (run_<pid>.json) while it
+# runs. The settings page reads these for its status: it runs as a different
+# user from fppd, and can't always see fppd's processes in /proc.
+def _alive(pid):
+    try:
+        os.kill(pid, 0)
+        return True
+    except PermissionError:
+        return True                 # exists, owned by another user
+    except Exception:
+        return False
+
+
+def run_notes():
+    """[{pid, mode, resuming}] for copies that are still running."""
+    out = []
+    try:
+        names = os.listdir(DATA_DIR)
+    except Exception:
+        return out
+    for fn in names:
+        if not (fn.startswith("run_") and fn.endswith(".json")):
+            continue
+        pid = fn[4:-5]
+        if not pid.isdigit() or int(pid) == os.getpid():
+            continue
+        path = os.path.join(DATA_DIR, fn)
+        if not _alive(int(pid)):
+            try:
+                os.remove(path)
+            except Exception:
+                pass
+            continue
+        try:
+            with open(path) as f:
+                n = json.load(f)
+            n["pid"] = int(pid)
+            out.append(n)
+        except Exception:
+            continue
+    return out
+
+
+def write_run_note(mode, resuming):
+    path = os.path.join(ensure_data_dir(), f"run_{os.getpid()}.json")
+    try:
+        run_notes()                 # tidies notes left by killed copies
+        with open(path, "w") as f:
+            json.dump({"mode": mode, "resuming": resuming, "started": int(time.time()),
+                       "argv": [PYTHON, SCRIPT_PATH] + sys.argv[1:]}, f)
+        os.chmod(path, 0o644)
+        return path
+    except Exception as e:
+        log(f"Couldn't write the status note: {e}")
+        return None
 
 
 def relaunch(argv):
@@ -1453,6 +1514,16 @@ def main():
         QUIET = True
     if a.loop or a.once:
         os.closerange(3, 256)      # don't hold on to fppd's sockets
+    if a.status:
+        notes = run_notes()
+        loop = [n for n in notes if n.get("mode") == "loop"]
+        once = [n for n in notes if n.get("mode") == "once"]
+        # a Show Once / Preview that interrupted the running display hands the
+        # matrix back to it afterwards, so the display still counts as running
+        resuming = any(n.get("resuming") for n in once)
+        print(json.dumps({"ok": True, "running": bool(loop) or resuming,
+                          "showing": bool(once), "pids": [n["pid"] for n in notes]}))
+        return 0
     load_settings(a.settings)
 
     if a.settings_json:
@@ -1461,17 +1532,6 @@ def main():
                           "settings": {k: saved.get(k, v) for k, v in DEFAULTS.items()},
                           "palettes": PALETTES,
                           "commandMoments": COMMAND_MOMENTS}))
-        return 0
-    if a.status:
-        copies = running_copies()
-        loop = [p for p, argv in copies if "--loop" in argv]
-        once = [p for p, argv in copies if "--once" in argv]
-        # a Show Once / Preview that interrupted the running display hands the
-        # matrix back to it afterwards, so the display still counts as running
-        resuming = any(os.path.exists(os.path.join(ensure_data_dir(), f"resume_{p}.json"))
-                       for p in once)
-        print(json.dumps({"ok": True, "running": bool(loop) or resuming,
-                          "showing": bool(once), "pids": [p for p, _ in copies]}))
         return 0
     if a.stop:
         n = stop_all()
@@ -1546,23 +1606,7 @@ def main():
         except Exception as e:
             log(f"Couldn't replace PID {pid}: {e}")
     wait_gone([p for p, _ in copies])
-    try:                                          # leftovers from killed copies
-        for fn in os.listdir(ensure_data_dir()):
-            if fn.startswith("resume_") and fn.endswith(".json"):
-                pid = fn[7:-5]
-                if not (pid.isdigit() and os.path.exists(f"/proc/{pid}")):
-                    os.remove(os.path.join(DATA_DIR, fn))
-    except Exception:
-        pass
-    marker = None
-    if resume:
-        # lets --status report the display as still running meanwhile
-        marker = os.path.join(ensure_data_dir(), f"resume_{os.getpid()}.json")
-        try:
-            with open(marker, "w") as f:
-                json.dump(resume, f)
-        except Exception:
-            marker = None
+    note = write_run_note("loop" if a.loop else "once", bool(resume))
 
     def on_term(*_):
         nonlocal resume
@@ -1634,9 +1678,9 @@ def main():
             if a.once:
                 break
     finally:
-        if marker:
+        if note:
             try:
-                os.remove(marker)
+                os.remove(note)
             except Exception:
                 pass
         if resume:
