@@ -22,7 +22,7 @@ $fppsantatrackerBoot = array(
     <h2 class="h3 mb-0 me-2">Santa Tracker</h2>
     <span class="badge rounded-pill text-bg-secondary" id="sStatus">Checking&hellip;</span>
     <div class="ms-auto d-flex gap-2">
-      <button type="button" class="btn btn-success" id="sStart"
+      <button type="button" class="btn btn-primary" id="sStart"
               title="Runs until you press Stop (same as the 'Santa Tracker - Start' command)">Start display</button>
       <button type="button" class="btn btn-danger" id="sStop">Stop</button>
     </div>
@@ -543,13 +543,19 @@ $fppsantatrackerBoot = array(
       var on = !!(j && j.running), showing = !!(j && j.showing), b = $('#sStatus');
       // a preview / Show Once is a short separate run; the running display
       // (Start display) comes back after it if it was on
-      var cls = showing ? 'text-bg-info' : on ? 'text-bg-success' : 'text-bg-secondary';
+      var cls = showing ? 'text-bg-info' : on ? 'text-bg-success' : 'text-bg-danger';
       var txt = showing ? (on ? 'Running (showing a preview)' : 'Showing a preview') : on ? 'Running' : 'Stopped';
       b.className = 'badge rounded-pill ' + cls;
       b.textContent = txt;
       b.title = showing ? 'A Show Once or Preview is on the matrix right now'
         : on ? 'The display is running (Start display) and keeps updating until Stop'
         : 'The continuous display is off. Show on matrix and Show Once still work.';
+      // Start button: blue "Start display" when off, green "Running" while on
+      var sb = $('#sStart');
+      sb.className = 'btn ' + (on ? 'btn-success' : 'btn-primary');
+      sb.textContent = on ? 'Running' : 'Start display';
+      sb.title = on ? 'The display is running. Click to restart it with your saved settings.'
+        : "Runs until you press Stop (same as the 'Santa Tracker - Start' command)";
       if (showing && !pollSoon) pollSoon = setTimeout(function () { pollSoon = null; pollStatus(); }, 3000);
     });
   }
