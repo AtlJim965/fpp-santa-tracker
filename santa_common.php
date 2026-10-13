@@ -103,6 +103,8 @@ function fppsantatracker_check($key, $value, $defaults, $info) {
     $default = (string)$defaults[$key];
     $choices = array(
         'DisplayMode' => array('map', 'text', 'both'),
+        'MapView' => array('auto', 'world', 'local'),
+        'LocalZoom' => array('wide', 'medium', 'close'),
         'PanelColorMode' => array('lines', 'single', 'letter', 'word', 'line'),
         'TextColorMode' => array('Single', 'Per Letter', 'Per Word', 'Per Line', 'Random Letter',
             'Random Word', 'Gradient Horizontal', 'Gradient Vertical', 'Gradient Diagonal', 'Sparkle', 'Chase'),
@@ -110,7 +112,7 @@ function fppsantatracker_check($key, $value, $defaults, $info) {
             'Pastel', 'Party', 'Halloween', 'Custom'),
     );
     $panelPalettes = array_merge(array_keys(isset($info['palettes']) ? $info['palettes'] : array()), array('Custom'));
-    $bools = array('AutoStart', 'AddHomeStop', 'ShowTrail', 'ShowDistance', 'ShowGifts');
+    $bools = array('AutoStart', 'AddHomeStop', 'ShowTrail', 'ShowDistance', 'ShowGifts', 'ShowBorders');
     $maxLen = array('CityName' => 40, 'State' => 40, 'CountdownPhrase' => 60, 'ModelName' => 64, 'TextFont' => 64);
 
     if (isset($choices[$key]) && !in_array($value, $choices[$key], true)) {

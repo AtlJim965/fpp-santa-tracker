@@ -95,17 +95,36 @@ $fppsantatrackerBoot = array(
       </div></div>
 
       <div class="card mb-3"><div class="card-body">
-        <h3 class="h5 card-title">Map colors</h3>
+        <h3 class="h5 card-title">Map</h3>
+        <div class="row g-2 mb-2">
+          <div class="col-12 col-sm-6"><label class="form-label mb-1" for="sView">Map view</label>
+            <select class="form-select" data-key="MapView" id="sView">
+              <option value="auto">Zoom in when Santa is near</option>
+              <option value="world">Always the whole world</option>
+              <option value="local">Always zoomed in</option>
+            </select></div>
+          <div class="col-12 col-sm-6" id="sZoomWrap"><label class="form-label mb-1" for="sZoom">Zoomed-in area</label>
+            <select class="form-select" data-key="LocalZoom" id="sZoom">
+              <option value="wide">Wide (about 4,500 mi)</option>
+              <option value="medium">Medium (about 2,500 mi)</option>
+              <option value="close">Close (about 1,200 mi)</option>
+            </select></div>
+        </div>
         <div class="row g-2">
           <div class="col-6 col-sm-4" data-color="LandColor" data-label="Land"></div>
           <div class="col-6 col-sm-4" data-color="OceanColor" data-label="Ocean"></div>
           <div class="col-6 col-sm-4" data-color="HomeColor" data-label="My location"></div>
           <div class="col-6 col-sm-4" data-color="SantaColor" data-label="Santa's location"></div>
           <div class="col-6 col-sm-4" data-color="TrailColor" data-label="Santa's trail"></div>
+          <div class="col-6 col-sm-4" id="sBorderWrap" data-color="BorderColor" data-label="Borders"></div>
         </div>
         <div class="form-check mt-2">
           <input class="form-check-input" type="checkbox" id="sTrail" data-key="ShowTrail">
           <label class="form-check-label" for="sTrail">Show Santa's trail (stops he has visited)</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="sBorders" data-key="ShowBorders">
+          <label class="form-check-label" for="sBorders">Show state and country borders on the zoomed-in map</label>
         </div>
       </div></div>
 
@@ -397,6 +416,8 @@ $fppsantatrackerBoot = array(
     $('#sSingleWrap').classList.toggle('d-none', mode !== 'single');
     $('#sLineColors').classList.toggle('d-none', mode !== 'lines');
     $('#sHomeStop').classList.toggle('d-none', !$('#sHome').checked);
+    $('#sZoomWrap').classList.toggle('d-none', $('#sView').value === 'world');
+    $('#sBorderWrap').classList.toggle('d-none', $('#sView').value === 'world' || !$('#sBorders').checked);
     drawSwatches();
   }
 

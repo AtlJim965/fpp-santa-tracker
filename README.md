@@ -2,7 +2,8 @@
 
 Shows Santa's live position on a Pixel Overlay Model (LED matrix):
 
-* a world map with Santa, his trail, and your town
+* a world map with Santa, his trail, and your town, which zooms in on your
+  area (with lakes and state borders) when Santa gets close
 * an info panel: a countdown before Christmas Eve, then "NOW IN" / "FLYING TO",
   distance from your town, and gifts delivered
 * or a scrolling text message (or the map, then the text)
@@ -52,14 +53,14 @@ preview is in use, the plugin downloads:
 
 * Google's public Santa Tracker route file, from `firebasestorage.googleapis.com`
   (checked at most every 6 hours)
-* once, the public-domain Natural Earth world outline, from
-  `raw.githubusercontent.com` (or `cdn.jsdelivr.net` /
+* once, public-domain Natural Earth map data (coastlines, lakes, state and
+  country borders), from `raw.githubusercontent.com` (or `cdn.jsdelivr.net` /
   `d2ad6b4ur7yvpq.cloudfront.net` if that fails)
 
 ## Files it writes
 
 * `config/plugin.fpp-santa-tracker`: your settings
-* `plugindata/fpp-santa-tracker/`: the saved route and map outline
+* `plugindata/fpp-santa-tracker/`: the saved route and map data
 * `images/santa_map_*.png`: the current map picture, which FPP's overlay Image
   effect reads from its images folder. Old frames are deleted automatically.
 * `logs/plugin-fpp-santa-tracker.log`: the plugin's log

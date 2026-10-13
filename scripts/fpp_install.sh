@@ -10,6 +10,8 @@ OWNER="$(stat -c '%U:%G' "$MEDIADIR" 2>/dev/null || echo fpp:fpp)"
 # our data folder (route and map outline cache)
 mkdir -p "$MEDIADIR/plugindata/fpp-santa-tracker"
 chown "$OWNER" "$MEDIADIR/plugindata/fpp-santa-tracker" 2>/dev/null || true
+# map files from older versions of the plugin
+rm -f "$MEDIADIR"/plugindata/fpp-santa-tracker/land_*x*.json
 chmod 755 "$PLUGINDIR/santa_tracker.py" "$PLUGINDIR"/commands/*.sh "$PLUGINDIR"/scripts/*.sh 2>/dev/null || true
 
 # This plugin has commands/descriptions.json and no callbacks script, so fppd

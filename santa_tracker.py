@@ -57,11 +57,16 @@ PYTHON = sys.executable or "/usr/bin/python3"
 ROUTE_URL = ("https://firebasestorage.googleapis.com/v0/b/"
              "santa-tracker-firebase.appspot.com/o/route%2Fsanta_en.json?alt=media")
 ROUTE_MAX_AGE = 6 * 3600
-LAND_URLS = [
-    "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_land.geojson",
-    "https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector@master/geojson/ne_110m_land.geojson",
-    "https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_110m_land.geojson",
+# Public-domain Natural Earth map data (1:50m), tried in this order.
+NE_SOURCES = [
+    "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/",
+    "https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector@master/geojson/",
+    "https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/",
 ]
+NE_LAND = "ne_50m_land.geojson"
+NE_LAKES = "ne_50m_lakes.geojson"
+NE_COUNTRY_LINES = "ne_50m_admin_0_boundary_lines_land.geojson"
+NE_STATE_LINES = "ne_50m_admin_1_states_provinces_lines.geojson"
 # Google's published route is stamped for Dec 24 2019 (takeoff 10:00 UTC).
 ROUTE_BASE_TAKEOFF_MS = 1577181600000
 
@@ -91,6 +96,10 @@ DEFAULTS = {
     "SantaColor": "#FF0000",
     "TrailColor": "#FFB400",
     "ShowTrail": "1",
+    "MapView": "auto",                  # auto | world | local
+    "LocalZoom": "medium",              # wide | medium | close
+    "ShowBorders": "1",                 # state/country lines on the zoomed map
+    "BorderColor": "#006428",
     # right-hand panel colors
     "PanelColorMode": "lines",          # lines | single | letter | word | line
     "PanelPalette": "Christmas",
@@ -560,79 +569,268 @@ def resolve_at(at, dests):
 
 
 # ------------------------------------------------------------- the map
-MAP_LAT_TOP = 85.0
-MAP_LAT_BOTTOM = -58.0
+# A fine land mask (4096 x 2048 cells, about 6 miles each, Great Lakes and
+# other lakes cut out) is built once from Natural Earth data and saved. Each
+# frame samples it through a Mercator projection, so shapes look like the maps
+# people know: a world view, or a zoomed view centred on your town.
+MASK_W, MASK_H = 4096, 2048
+MASK_FILE = "landmask_v2_4096.bin.z"
+BORDER_FILE = "borders_v2.json"
+LOCAL_SPANS = {"wide": 90.0, "medium": 50.0, "close": 25.0}   # degrees across
+WORLD_TOP_LAT = 72.0
 
 
-def map_xy(lat, lng, w, h):
-    x = int((lng + 180.0) / 360.0 * w)
-    y = int((MAP_LAT_TOP - lat) / (MAP_LAT_TOP - MAP_LAT_BOTTOM) * h)
-    return min(max(x, 0), w - 1), min(max(y, 0), h - 1)
-
-
-def _land_rings():
+def _download_ne(name):
     last = None
-    for url in LAND_URLS:
+    for base in NE_SOURCES:
         try:
-            req = urllib.request.Request(url, headers={"User-Agent": "fpp-santa-tracker"})
-            with urllib.request.urlopen(req, timeout=30) as r:
-                gj = json.loads(r.read().decode("utf-8"))
-            rings = []
-            for feat in gj.get("features", []):
-                g = feat.get("geometry") or {}
-                polys = ([g["coordinates"]] if g.get("type") == "Polygon"
-                         else g.get("coordinates", []) if g.get("type") == "MultiPolygon"
-                         else [])
-                for poly in polys:
-                    rings.extend(poly)
-            if rings:
-                log(f"Coastline downloaded ({len(rings)} shapes)")
-                return rings
+            req = urllib.request.Request(base + name, headers={"User-Agent": "fpp-santa-tracker"})
+            with urllib.request.urlopen(req, timeout=60) as r:
+                return json.loads(r.read().decode("utf-8"))
         except Exception as e:
             last = e
-    raise RuntimeError(f"couldn't download the coastline: {last}")
+    raise RuntimeError(f"couldn't download {name}: {last}")
 
 
-def rasterize_land(rings, w, h, ss=2):
-    cov = [[0] * w for _ in range(h)]
-    span = MAP_LAT_TOP - MAP_LAT_BOTTOM
-    edges = []
+def _rings(gj):
+    out = []
+    for feat in gj.get("features", []):
+        g = feat.get("geometry") or {}
+        polys = ([g["coordinates"]] if g.get("type") == "Polygon"
+                 else g.get("coordinates", []) if g.get("type") == "MultiPolygon" else [])
+        for poly in polys:
+            out.extend(poly)            # outer ring + holes (even-odd fill)
+    return out
+
+
+def _lines(gj):
+    out = []
+    for feat in gj.get("features", []):
+        g = feat.get("geometry") or {}
+        if g.get("type") == "LineString":
+            out.append(g["coordinates"])
+        elif g.get("type") == "MultiLineString":
+            out.extend(g["coordinates"])
+    return out
+
+
+def _fill_mask(mask, rings, value):
+    """Scanline-fill polygons into the equirectangular mask (even-odd)."""
+    W, H = MASK_W, MASK_H
+    step = 180.0 / H
+    buckets = [[] for _ in range(H)]
     for ring in rings:
-        for (x1, y1), (x2, y2) in zip(ring, ring[1:] + ring[:1]):
-            if y1 != y2:
-                edges.append((x1, y1, x2, y2))
-    for sy in range(h * ss):
-        lat = MAP_LAT_TOP - (sy + 0.5) / (h * ss) * span
-        xs = sorted(x1 + (lat - y1) * (x2 - x1) / (y2 - y1)
-                    for x1, y1, x2, y2 in edges if (y1 > lat) != (y2 > lat))
-        row = cov[sy // ss]
+        n = len(ring)
+        for i in range(n):
+            x1, y1 = ring[i][0], ring[i][1]
+            x2, y2 = ring[(i + 1) % n][0], ring[(i + 1) % n][1]
+            if y1 == y2:
+                continue
+            lo, hi = (y1, y2) if y1 < y2 else (y2, y1)
+            r0 = max(0, math.ceil((90 - hi) / step - 0.5))
+            r1 = min(H - 1, math.floor((90 - lo) / step - 0.5))
+            k = (x2 - x1) / (y2 - y1)
+            for r in range(r0, r1 + 1):
+                lat = 90 - (r + 0.5) * step
+                if lo <= lat < hi:
+                    buckets[r].append(x1 + (lat - y1) * k)
+    cw = 360.0 / W
+    for r in range(H):
+        xs = buckets[r]
+        if not xs:
+            continue
+        xs.sort()
+        base = r * W
         for a, b in zip(xs[0::2], xs[1::2]):
-            c0 = math.ceil((a + 180.0) / 360.0 * w * ss - 0.5)
-            c1 = math.floor((b + 180.0) / 360.0 * w * ss - 0.5)
-            for c in range(max(c0, 0), min(c1, w * ss - 1) + 1):
-                row[c // ss] += 1
-    return cov
+            c0 = max(0, math.ceil((a + 180) / cw - 0.5))
+            c1 = min(W - 1, math.floor((b + 180) / cw - 0.5))
+            if c1 >= c0:
+                mask[base + c0: base + c1 + 1] = value * (c1 - c0 + 1)
 
 
-def load_land(w, h):
-    cache = os.path.join(ensure_data_dir(), f"land_{w}x{h}.json")
-    if os.path.exists(cache):
+_mask_cache = {}
+
+
+def land_mask():
+    """The land mask (bytes, 1 = land), downloaded and built once, then saved."""
+    if "mask" in _mask_cache:
+        return _mask_cache["mask"]
+    import zlib
+    path = os.path.join(ensure_data_dir(), MASK_FILE)
+    mask = None
+    if os.path.exists(path):
         try:
-            with open(cache) as f:
-                return json.load(f)
+            with open(path, "rb") as f:
+                mask = zlib.decompress(f.read())
+            if len(mask) != MASK_W * MASK_H:
+                mask = None
         except Exception:
-            pass
-    try:
-        cov = rasterize_land(_land_rings(), w, h)
-        tmp = cache + ".tmp"
-        with open(tmp, "w") as f:
-            json.dump(cov, f)
-        os.replace(tmp, cache)
-        own(cache)
-        return cov
-    except Exception as e:
-        log(f"Map will show without land for now: {e}")
-        return [[0] * w for _ in range(h)]
+            mask = None
+    if mask is None:
+        try:
+            m = bytearray(MASK_W * MASK_H)
+            _fill_mask(m, _rings(_download_ne(NE_LAND)), b"\x01")
+            try:
+                _fill_mask(m, _rings(_download_ne(NE_LAKES)), b"\x00")
+            except Exception as e:
+                log(f"Map lakes unavailable for now: {e}")
+            mask = bytes(m)
+            tmp = path + ".tmp"
+            with open(tmp, "wb") as f:
+                f.write(zlib.compress(mask, 6))
+            os.replace(tmp, path)
+            own(path)
+            log("World map downloaded and saved")
+        except Exception as e:
+            log(f"Map will show without land for now: {e}")
+            return bytes(MASK_W * MASK_H)      # not cached: try again next time
+    _mask_cache["mask"] = mask
+    return mask
+
+
+def border_lines():
+    """State/province and country border lines, rounded and saved once."""
+    if "borders" in _mask_cache:
+        return _mask_cache["borders"]
+    path = os.path.join(ensure_data_dir(), BORDER_FILE)
+    lines = None
+    if os.path.exists(path):
+        try:
+            with open(path) as f:
+                lines = json.load(f)
+        except Exception:
+            lines = None
+    if lines is None:
+        try:
+            raw = _lines(_download_ne(NE_COUNTRY_LINES)) + _lines(_download_ne(NE_STATE_LINES))
+            lines = [[[round(p[0], 3), round(p[1], 3)] for p in ln] for ln in raw]
+            tmp = path + ".tmp"
+            with open(tmp, "w") as f:
+                json.dump(lines, f, separators=(",", ":"))
+            os.replace(tmp, path)
+            own(path)
+        except Exception as e:
+            log(f"Map borders unavailable for now: {e}")
+            return []
+    _mask_cache["borders"] = lines
+    return lines
+
+
+def _merc(lat):
+    lat = max(-85.0, min(85.0, lat))
+    return math.log(math.tan(math.pi / 4 + math.radians(lat) / 2))
+
+
+class MapView:
+    """Mercator view of `span` degrees of longitude across `w` pixels."""
+
+    def __init__(self, name, w, h, lon_center, span, lat_center=None, top_lat=None):
+        self.name, self.w, self.h = name, w, h
+        self.lonc, self.span = lon_center, span
+        self.k = w / math.radians(span)              # pixels per radian
+        if top_lat is not None:
+            self.ytop = _merc(top_lat)
+        else:
+            self.ytop = _merc(lat_center) + (h / self.k) / 2
+
+    def xy(self, lat, lng):
+        dl = (lng - self.lonc + 540) % 360 - 180
+        return (dl / self.span + 0.5) * self.w, (self.ytop - _merc(lat)) * self.k
+
+    def contains(self, lat, lng):
+        x, y = self.xy(lat, lng)
+        return 0 <= x < self.w and 0 <= y < self.h
+
+    def pixel(self, lat, lng):
+        """Integer pixel, clamped to the edge if outside the view."""
+        x, y = self.xy(lat, lng)
+        return min(max(int(x), 0), self.w - 1), min(max(int(y), 0), self.h - 1)
+
+    def key(self):
+        return (self.name, self.w, self.h, round(self.lonc, 4), round(self.span, 4),
+                round(self.ytop, 6))
+
+
+def world_view(w, h):
+    return MapView("world", w, h, 0.0, 360.0, top_lat=WORLD_TOP_LAT)
+
+
+def local_view(w, h):
+    hlat, hlng = home_latlng()
+    span = LOCAL_SPANS.get(cfg_str("LocalZoom").lower(), LOCAL_SPANS["medium"])
+    return MapView("local", w, h, hlng, span, lat_center=hlat)
+
+
+def pick_view(st, w, h):
+    """Map view for this frame. 'auto' zooms in around your town while Santa
+    is inside the zoomed area, and shows the whole world otherwise."""
+    mode = cfg_str("MapView").lower()
+    if mode == "world":
+        return world_view(w, h)
+    local = local_view(w, h)
+    if mode == "local":
+        return local
+    if st["state"] in ("stop", "flying") and local.contains(st["loc"]["lat"], st["loc"]["lng"]):
+        return local
+    return world_view(w, h)
+
+
+_coverage_cache = {}
+
+
+def land_coverage(view, ss=3):
+    """Land coverage 0..ss*ss for every pixel of the view (cached per view)."""
+    key = view.key()
+    if key in _coverage_cache:
+        return _coverage_cache[key]
+    mask = land_mask()
+    MW, MH = MASK_W, MASK_H
+    out = []
+    for y in range(view.h):
+        rows = []
+        for j in range(ss):
+            ym = view.ytop - (y + (j + 0.5) / ss) / view.k
+            lat = math.degrees(math.atan(math.sinh(ym)))
+            r = int((90 - lat) / 180 * MH)
+            rows.append(min(max(r, 0), MH - 1) * MW)
+        row = []
+        for x in range(view.w):
+            n = 0
+            for i in range(ss):
+                lng = ((x + (i + 0.5) / ss) / view.w - 0.5) * view.span + view.lonc
+                c = int(((lng + 180) % 360) / 360 * MW) % MW
+                for base in rows:
+                    n += mask[base + c]
+            row.append(n)
+        out.append(row)
+    _coverage_cache[key] = out
+    return out
+
+
+def border_pixels(view):
+    """Pixels on a state/country border line inside the view."""
+    key = ("borders",) + view.key()
+    if key in _coverage_cache:
+        return _coverage_cache[key]
+    px = set()
+    w, h = view.w, view.h
+    for ln in border_lines():
+        prev = None
+        for lng, lat in ln:
+            x, y = view.xy(lat, lng)
+            if prev is not None:
+                x0, y0 = prev
+                if abs(x - x0) < w / 2 and not ((x < 0 and x0 < 0) or (x >= w and x0 >= w)
+                                                or (y < 0 and y0 < 0) or (y >= h and y0 >= h)):
+                    steps = int(max(abs(x - x0), abs(y - y0)) * 2) + 1
+                    for t in range(steps + 1):
+                        xi = int(x0 + (x - x0) * t / steps)
+                        yi = int(y0 + (y - y0) * t / steps)
+                        if 0 <= xi < w and 0 <= yi < h:
+                            px.add((xi, yi))
+            prev = (x, y)
+    _coverage_cache[key] = px
+    return px
 
 
 # ------------------------------------------------------------- panel size
@@ -863,33 +1061,44 @@ def short_number(n):
     return str(int(n))
 
 
-def draw_frame(st, land, W, H):
+def draw_frame(st, W, H):
     """Map on the left, info panel on the right."""
     mw = map_width(W, H)
     cv = Canvas(W, H)
+    view = pick_view(st, mw, H)
     ocean = cfg_color("OceanColor")
     landc = cfg_color("LandColor")
+    ss2 = 9
+    cov = land_coverage(view)
     for y in range(H):
-        row = land[y] if y < len(land) else []
+        row = cov[y]
         for x in range(mw):
-            c = row[x] if x < len(row) else 0
+            c = row[x]
             if c:
-                k = 0.6 + 0.4 * c / 4          # coastline pixels a bit dimmer
+                k = 0.55 + 0.45 * c / ss2          # coastline pixels a bit dimmer
                 cv.set(x, y, tuple(int(o + (l - o) * k) for o, l in zip(ocean, landc)))
             elif ocean != (0, 0, 0):
                 cv.set(x, y, ocean)
+    if view.name == "local" and cfg_bool("ShowBorders"):
+        border = cfg_color("BorderColor")
+        for x, y in border_pixels(view):
+            if cov[y][x]:                            # only where there's land
+                cv.set(x, y, border)
     if cfg_bool("ShowTrail"):
         trail = cfg_color("TrailColor")
         for loc in st["visited"]:
-            cv.set(*map_xy(loc["lat"], loc["lng"], mw, H), trail)
+            if view.contains(loc["lat"], loc["lng"]):
+                cv.set(*view.pixel(loc["lat"], loc["lng"]), trail)
     hlat, hlng = home_latlng()
-    hx, hy = map_xy(hlat, hlng, mw, H)
-    for dx, dy in ((0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)):
-        cv.set(hx + dx, hy + dy, cfg_color("HomeColor"))
+    if view.contains(hlat, hlng):
+        hx, hy = view.pixel(hlat, hlng)
+        for dx, dy in ((0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)):
+            cv.set(hx + dx, hy + dy, cfg_color("HomeColor"))
     santa = cfg_color("SantaColor")
-    sx, sy = map_xy(st["loc"]["lat"], st["loc"]["lng"], mw, H)
+    sx, sy = view.pixel(st["loc"]["lat"], st["loc"]["lng"])
     for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1), (-2, 0), (2, 0), (0, -2), (0, 2)):
-        cv.set(sx + dx, sy + dy, santa)
+        if 0 <= sx + dx < mw:
+            cv.set(sx + dx, sy + dy, santa)
     cv.set(sx, sy, tuple(min(255, v + 120) for v in santa))   # bright center
 
     px0 = mw + 2
@@ -980,8 +1189,7 @@ def draw_frame(st, land, W, H):
 
 def render(st):
     _name, W, H = model_info()
-    land = load_land(map_width(W, H), H)
-    return draw_frame(st, land, W, H)
+    return draw_frame(st, W, H)
 
 
 # ------------------------------------------------------------- FPP output
