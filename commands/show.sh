@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # Santa Tracker - Show Once [Display] [Seconds]
 . "${SCRIPTDIR:-$(dirname "$0")}/santa_env.sh"
 MODE=$(mode_opt "$1")

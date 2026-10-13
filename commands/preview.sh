@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # Santa Tracker - Preview [Moment] [Seconds]
 . "${SCRIPTDIR:-$(dirname "$0")}/santa_env.sh"
 MOMENT="${1:-Santa in my town}"
