@@ -1265,8 +1265,60 @@ def fpp_command(command, args):
         raise RuntimeError(f"{e} - FPP said: {detail or '(no details)'}")
 
 
+# The plugin switches its overlay model on to draw. The state the model was in
+# before (often off, so sequences show through) is saved the first time and put
+# back when the display stops, so the plugin leaves FPP as it found it.
+MODEL_STATE_FILE = "model_state.json"
+_model_saved = False
+
+
+def _model_state_path():
+    return os.path.join(ensure_data_dir(), MODEL_STATE_FILE)
+
+
+def remember_model_state(name):
+    global _model_saved
+    if _model_saved:
+        return
+    path = _model_state_path()
+    if os.path.exists(path):            # an earlier run saved it; keep that
+        _model_saved = True
+        return
+    try:
+        with urllib.request.urlopen(
+                f"http://{FPP_HOST}/api/overlays/model/{urllib.parse.quote(name)}",
+                timeout=5) as r:
+            state = int(json.loads(r.read().decode()).get("isActive", 0))
+        with open(path, "w") as f:
+            json.dump({"model": name, "state": state}, f)
+        own(path)
+        _model_saved = True
+    except Exception as e:
+        log(f"Couldn't read the state of model '{name}': {e}")
+
+
+def restore_model_state():
+    """Put the model back the way it was before the plugin first drew on it."""
+    path = os.path.join(DATA_DIR, MODEL_STATE_FILE)
+    try:
+        with open(path) as f:
+            saved = json.load(f)
+    except Exception:
+        return
+    name, state = saved.get("model"), int(saved.get("state", 0))
+    try:
+        url = f"http://{FPP_HOST}/api/overlays/model/{urllib.parse.quote(name)}/state"
+        req = urllib.request.Request(url, data=json.dumps({"State": state}).encode(),
+                                     headers={"Content-Type": "application/json"}, method="PUT")
+        urllib.request.urlopen(req, timeout=10).read()
+        os.remove(path)
+    except Exception as e:
+        log(f"Couldn't put model '{name}' back to state {state}: {e}")
+
+
 def enable_model():
     name = model_info()[0]
+    remember_model_state(name)
     try:
         url = f"http://{FPP_HOST}/api/overlays/model/{urllib.parse.quote(name)}/state"
         req = urllib.request.Request(url, data=json.dumps({"State": 1}).encode(),
@@ -1397,12 +1449,22 @@ def running_copies():
     return found
 
 
+def _running(pid):
+    """True while pid is a live process (a finished one waiting to be reaped,
+    a zombie, doesn't count)."""
+    try:
+        with open(f"/proc/{pid}/stat") as f:
+            return f.read().rsplit(")", 1)[1].split()[0] != "Z"
+    except Exception:
+        return False
+
+
 def wait_gone(pids, timeout=5):
     end = time.time() + timeout
-    while time.time() < end and any(os.path.exists(f"/proc/{p}") for p in pids):
-        time.sleep(0.2)
+    while time.time() < end and any(_running(p) for p in pids):
+        time.sleep(0.1)
     for p in pids:
-        if os.path.exists(f"/proc/{p}"):
+        if _running(p):
             try:
                 os.kill(p, signal.SIGKILL)
             except Exception:
@@ -1419,6 +1481,7 @@ def stop_all(clear=True):
     wait_gone([p for p, _ in copies])
     if clear:
         clear_matrix()
+        restore_model_state()
     return len(copies)
 
 
@@ -1644,16 +1707,20 @@ def main():
     wait_gone([p for p, _ in copies])
     note = write_run_note("loop" if a.loop else "once", bool(resume))
 
+    replaced = False
+
     def on_term(*_):
         nonlocal resume
         resume = None                             # a Stop means stop everything
         log("Stopping - clearing the matrix")
         clear_matrix()
+        restore_model_state()
         sys.exit(0)
 
     def on_replaced(*_):
-        nonlocal resume
+        nonlocal resume, replaced
         resume = None
+        replaced = True                           # whoever replaced us has the model
         sys.exit(0)
     signal.signal(signal.SIGTERM, on_term)
     signal.signal(signal.SIGINT, on_term)
@@ -1722,6 +1789,11 @@ def main():
                 pass
         if resume:
             relaunch(resume)
+        elif a.once and not replaced and not running_copies():
+            # a Show Once / Preview finished on its own with nothing to hand
+            # the matrix back to
+            clear_matrix()
+            restore_model_state()
     return 0
 
 

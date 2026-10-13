@@ -57,16 +57,27 @@ preview is in use, the plugin downloads:
   country borders), from `raw.githubusercontent.com` (or `cdn.jsdelivr.net` /
   `d2ad6b4ur7yvpq.cloudfront.net` if that fails)
 
-## Files it writes
+## Files it writes and what it changes
 
 * `config/plugin.fpp-santa-tracker`: your settings
-* `plugindata/fpp-santa-tracker/`: the saved route and map data
+* `plugindata/fpp-santa-tracker/`: the saved route and map data, small status
+  notes while the display runs, and the overlay model's state from before the
+  plugin first drew on it
 * `images/santa_map_*.png`: the current map picture, which FPP's overlay Image
   effect reads from its images folder. Old frames are deleted automatically.
 * `logs/plugin-fpp-santa-tracker.log`: the plugin's log
+* Your overlay model is switched on while the plugin draws on it. When the
+  display stops (Stop, or a Show Once / Preview finishing), the model is put
+  back the way it was, so your sequences show through again.
 
-Uninstalling stops the display and removes the map pictures and saved data.
-Your settings file is kept, so a reinstall remembers them.
+Updating restarts a running display on the new code. If an update changes the
+plugin's commands, FPP asks for an FPPD restart.
+
+Uninstalling stops the display, puts the model back, and removes the map
+pictures, saved data and log. FPP keeps listing the plugin's commands until
+FPPD restarts, so it asks for a restart. Your settings file is kept, so a
+reinstall remembers them; delete `config/plugin.fpp-santa-tracker` to remove
+them too.
 
 ## License
 

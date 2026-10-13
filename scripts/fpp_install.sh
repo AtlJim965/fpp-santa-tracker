@@ -1,25 +1,59 @@
 #!/bin/bash
-# Santa Tracker - install / reinstall. Runs as root; safe to run again.
+# Santa Tracker - install, and every update (FPP runs this after pulling new
+# code, since there is no fpp_upgrade.sh). Runs as root; safe to run again.
+# Everything it creates outside the plugin folder is removed again by
+# scripts/fpp_uninstall.sh - keep the two in step.
 PLUGINDIR="$(cd "$(dirname "$0")/.." && pwd)"
 if [ -f "${FPPDIR:-/opt/fpp}/scripts/common" ]; then
     . "${FPPDIR:-/opt/fpp}/scripts/common"
 fi
 MEDIADIR="${MEDIADIR:-/home/fpp/media}"
+LOGDIR="${LOGDIR:-$MEDIADIR/logs}"
 OWNER="$(stat -c '%U:%G' "$MEDIADIR" 2>/dev/null || echo fpp:fpp)"
+DATADIR="$MEDIADIR/plugindata/fpp-santa-tracker"
 
-# our data folder (route and map outline cache)
-mkdir -p "$MEDIADIR/plugindata/fpp-santa-tracker"
-chown "$OWNER" "$MEDIADIR/plugindata/fpp-santa-tracker" 2>/dev/null || true
-# map files from older versions of the plugin
-rm -f "$MEDIADIR"/plugindata/fpp-santa-tracker/land_*x*.json
+# our data folder (route and map cache, status notes), owned by the media
+# folder's owner so the settings page (web user) can update it too
+mkdir -p "$DATADIR"
+chown -R "$OWNER" "$DATADIR" 2>/dev/null || true
+# files from older versions of the plugin
+rm -f "$DATADIR"/land_*x*.json "$DATADIR"/resume_*.json "$DATADIR"/*.tmp
 chmod 755 "$PLUGINDIR/santa_tracker.py" "$PLUGINDIR"/commands/*.sh "$PLUGINDIR"/scripts/*.sh 2>/dev/null || true
 
 # This plugin has commands/descriptions.json and no callbacks script, so fppd
-# only picks up its commands when it starts. Ask for a restart only if the
-# running fppd doesn't already know them.
-if ! curl -s -m 5 http://127.0.0.1/api/commands 2>/dev/null | grep -q '"Santa Tracker - Start"'; then
-    if type setSetting >/dev/null 2>&1; then
-        setSetting restartFlag 1
-    fi
+# only reads its commands when it starts (FPP's plugin load/unload skips
+# plugins without callbacks). Ask for an FPPD restart when fppd doesn't list
+# all of them, or when an update changed them.
+NAMES="$(/usr/bin/python3 -c 'import json,sys; print("\n".join(c["name"] for c in json.load(open(sys.argv[1]))))' \
+    "$PLUGINDIR/commands/descriptions.json" 2>/dev/null)"
+LISTED="$(curl -s -m 5 http://127.0.0.1/api/commands 2>/dev/null)"
+NEED_RESTART=0
+if [ -n "$LISTED" ]; then
+    while IFS= read -r n; do
+        if [ -n "$n" ] && ! printf '%s' "$LISTED" | grep -qF "\"$n\""; then
+            NEED_RESTART=1
+        fi
+    done <<< "$NAMES"
+fi
+SUMFILE="$DATADIR/.commands_sha256"
+SUM="$(sha256sum "$PLUGINDIR/commands/descriptions.json" 2>/dev/null | cut -d' ' -f1)"
+if [ -f "$SUMFILE" ] && [ -n "$SUM" ] && [ "$(cat "$SUMFILE")" != "$SUM" ]; then
+    NEED_RESTART=1
+fi
+if [ -n "$SUM" ]; then
+    echo "$SUM" > "$SUMFILE"
+    chown "$OWNER" "$SUMFILE" 2>/dev/null || true
+fi
+if [ "$NEED_RESTART" = 1 ] && type setSetting >/dev/null 2>&1; then
+    setSetting restartFlag 1
+fi
+
+# After an update a running display is still the old code. Start the new
+# code; it takes over from the old copy without blanking the matrix.
+if pgrep -f "$PLUGINDIR/santa_tracker.py --loop" >/dev/null 2>&1; then
+    echo "Restarting the running Santa Tracker display with the updated code"
+    MEDIADIR="$MEDIADIR" LOGDIR="$LOGDIR" SANTA_QUIET=1 setsid /usr/bin/python3 \
+        "$PLUGINDIR/santa_tracker.py" --loop </dev/null >/dev/null \
+        2>>"$LOGDIR/plugin-fpp-santa-tracker.log" &
 fi
 exit 0
