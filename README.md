@@ -7,15 +7,21 @@ Shows Santa's live position on a Pixel Overlay Model (LED matrix):
   distance from your town, and gifts delivered
 * or a scrolling text message (or the map, then the text)
 
-Your town can be added as one of Santa's stops ("FLYING TO: CONYERS" ...
+Your town can be added as one of Santa's stops ("FLYING TO: YOUR TOWN" ...
 "HE'S HERE!").
 
 Requires FPP 10 or newer. Standard Python 3 only, no extra packages.
 
 ## Install
 
-**From GitHub (Plugin Manager):** Content Setup > Plugin Manager, paste this
-repository's `pluginInfo.json` URL, and install. Then click **Restart FPPD**.
+**From GitHub (Plugin Manager):** in FPP go to Content Setup > Plugin Manager,
+paste this into the box for installing a plugin from a URL, and install:
+
+```
+https://raw.githubusercontent.com/AtlJim965/fpp-santa-tracker/main/pluginInfo.json
+```
+
+Then click **Restart FPPD** (FPP loads plugin commands when it starts).
 
 **From the zip file:**
 

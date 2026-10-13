@@ -3,9 +3,9 @@
     "name": "Santa Tracker",
     "author": "Jimson Circle of Lights",
     "description": "Shows Santa's live position on a Pixel Overlay Model: a world map with Santa, his trail and your town, plus a countdown or an info panel (city, distance, gifts delivered), or a scrolling message. Settings page with live preview. Downloads Santa's route from Google's Santa Tracker (firebasestorage.googleapis.com) and a world coastline outline (raw.githubusercontent.com, cdn.jsdelivr.net or d2ad6b4ur7yvpq.cloudfront.net). Nothing about you or your show is sent anywhere.",
-    "homeURL": "https://github.com/YOUR-GITHUB-NAME/fpp-santa-tracker",
-    "srcURL": "https://github.com/YOUR-GITHUB-NAME/fpp-santa-tracker.git",
-    "bugURL": "https://github.com/YOUR-GITHUB-NAME/fpp-santa-tracker/issues",
+    "homeURL": "https://github.com/AtlJim965/fpp-santa-tracker",
+    "srcURL": "https://github.com/AtlJim965/fpp-santa-tracker.git",
+    "bugURL": "https://github.com/AtlJim965/fpp-santa-tracker/issues",
     "allowUpdates": 1,
     "versions": [
         {
