@@ -292,9 +292,12 @@ $fppsantatrackerBoot = array(
   }
 
   function api(method, path, body) {
-    var opts = { method: method, headers: { 'Content-Type': 'application/json' } };
+    // cache: 'no-store' plus a unique query string, so the browser never
+    // answers from a saved copy (status would otherwise stick on its first reply)
+    var opts = { method: method, cache: 'no-store', headers: { 'Content-Type': 'application/json' } };
     if (body !== undefined) opts.body = JSON.stringify(body);
-    return fetch(API + path, opts).then(function (r) {
+    var url = API + path + (method === 'GET' ? (path.indexOf('?') < 0 ? '?' : '&') + '_=' + Date.now() : '');
+    return fetch(url, opts).then(function (r) {
       return r.text().then(function (t) {
         var parsed;
         try { parsed = JSON.parse(t); } catch (e) { parsed = undefined; }
@@ -537,11 +540,23 @@ $fppsantatrackerBoot = array(
     return 'Right now';
   }
   var pollSoon = null;
+  var startingUntil = 0;     // after Start: keep "Starting..." until it reports in
   function pollStatus() {
     api('GET', 'santa-status').then(function (j) {
       var on = !!(j && j.running), showing = !!(j && j.showing);
-      // Start button: blue "Start display" when off, green "Running" while on
       var sb = $('#sStart');
+      if (on) startingUntil = 0;
+      if (!on && Date.now() < startingUntil) {
+        // the display can take several seconds to start on a Pi
+        sb.className = 'btn btn-success'; sb.textContent = 'Starting\u2026';
+        if (!pollSoon) pollSoon = setTimeout(function () { pollSoon = null; pollStatus(); }, 1000);
+        return;
+      }
+      if (!on && startingUntil) {
+        startingUntil = 0;
+        toast('The display didn\'t report that it started. Check logs/plugin-fpp-santa-tracker.log.', false);
+      }
+      // Start button: blue "Start Display" when off, green "Running" while on
       sb.className = 'btn ' + (on ? 'btn-success' : 'btn-primary');
       sb.textContent = on ? 'Running' : 'Start Display';
       sb.title = on ? 'The display is running. Click to restart it with your saved settings.'
@@ -623,13 +638,21 @@ $fppsantatrackerBoot = array(
       if (!ok) return;
       var sb = $('#sStart');
       sb.className = 'btn btn-success'; sb.textContent = 'Starting\u2026';
+      startingUntil = Date.now() + 30000;
       action('start', ['Saved setting']).then(function (j) {
-        if (j.ok) toast('Display started.', true); else pollStatus();
+        if (j.ok) toast('Display started.', true);
+        else { startingUntil = 0; pollStatus(); }
       });
     });
   });
   $('#sStop').addEventListener('click', function () {
-    action('stop', []).then(function (j) { if (j.ok) toast('Display stopped.', true); });
+    startingUntil = 0;
+    action('stop', []).then(function (j) {
+      if (!j.ok) return;
+      toast('Display stopped.', true);
+      var sb = $('#sStart');
+      sb.className = 'btn btn-primary'; sb.textContent = 'Start Display';
+    });
   });
   $('#sShow').addEventListener('click', function () {
     var secs = String(Math.max(3, Math.min(600, parseInt($('#sShowSecs').value, 10) || 20)));
