@@ -23,7 +23,7 @@ $fppsantatrackerBoot = array(
     <span class="badge rounded-pill text-bg-secondary" id="sStatus">Checking&hellip;</span>
     <div class="ms-auto d-flex gap-2">
       <button type="button" class="btn btn-primary" id="sStart"
-              title="Runs until you press Stop (same as the 'Santa Tracker - Start' command)">Start display</button>
+              title="Runs until you press Stop (same as the 'Santa Tracker - Start' command)">Start Display</button>
       <button type="button" class="btn btn-danger" id="sStop">Stop</button>
     </div>
   </div>
@@ -553,7 +553,7 @@ $fppsantatrackerBoot = array(
       // Start button: blue "Start display" when off, green "Running" while on
       var sb = $('#sStart');
       sb.className = 'btn ' + (on ? 'btn-success' : 'btn-primary');
-      sb.textContent = on ? 'Running' : 'Start display';
+      sb.textContent = on ? 'Running' : 'Start Display';
       sb.title = on ? 'The display is running. Click to restart it with your saved settings.'
         : "Runs until you press Stop (same as the 'Santa Tracker - Start' command)";
       if (showing && !pollSoon) pollSoon = setTimeout(function () { pollSoon = null; pollStatus(); }, 3000);
