@@ -97,6 +97,11 @@ $fppsantatrackerBoot = array(
       <div class="card mb-3"><div class="card-body">
         <h3 class="h5 card-title">Map</h3>
         <div class="row g-2 mb-2">
+          <div class="col-12 col-sm-6"><label class="form-label mb-1" for="sMarker">Show Santa as</label>
+            <select class="form-select" data-key="SantaMarker" id="sMarker">
+              <option value="sleigh">Sleigh and reindeer</option>
+              <option value="dot">A dot</option>
+            </select></div>
           <div class="col-12 col-sm-6"><label class="form-label mb-1" for="sView">Map view</label>
             <select class="form-select" data-key="MapView" id="sView">
               <option value="auto">Zoom in when Santa is near</option>
@@ -114,7 +119,7 @@ $fppsantatrackerBoot = array(
           <div class="col-6 col-sm-4" data-color="LandColor" data-label="Land"></div>
           <div class="col-6 col-sm-4" data-color="OceanColor" data-label="Ocean"></div>
           <div class="col-6 col-sm-4" data-color="HomeColor" data-label="My location"></div>
-          <div class="col-6 col-sm-4" data-color="SantaColor" data-label="Santa's location"></div>
+          <div class="col-6 col-sm-4" data-color="SantaColor" data-label="Santa's sleigh"></div>
           <div class="col-6 col-sm-4" data-color="TrailColor" data-label="Santa's trail"></div>
           <div class="col-6 col-sm-4" id="sBorderWrap" data-color="BorderColor" data-label="Borders"></div>
         </div>

@@ -93,7 +93,8 @@ DEFAULTS = {
     "LandColor": "#00DC46",
     "OceanColor": "#000000",
     "HomeColor": "#FFFFFF",
-    "SantaColor": "#FF0000",
+    "SantaColor": "#FF0000",            # Santa's sleigh / dot
+    "SantaMarker": "sleigh",            # sleigh | dot
     "TrailColor": "#FFB400",
     "ShowTrail": "1",
     "MapView": "auto",                  # auto | world | local
@@ -433,6 +434,7 @@ def santa_status(dests, now_ms):
         for i in range(1, len(stops)):
             prev, cur = stops[i - 1], stops[i]
             if cur["arrival"] <= now_ms <= cur["departure"]:
+                st["heading"] = _heading(prev["location"], cur["location"])
                 st.update(state="stop", loc=cur["location"], dest=cur,
                           gifts=cur.get("presentsDelivered", 0),
                           visited=[s["location"] for s in stops[1:i + 1]])
@@ -440,6 +442,7 @@ def santa_status(dests, now_ms):
             if prev["departure"] < now_ms < cur["arrival"]:
                 frac = (now_ms - prev["departure"]) / (cur["arrival"] - prev["departure"])
                 lat, lng = interpolate(prev["location"], cur["location"], frac)
+                st["heading"] = _heading(prev["location"], cur["location"])
                 st.update(state="flying", loc={"lat": lat, "lng": lng}, dest=cur,
                           left_ms=int(cur["arrival"] - now_ms),
                           gifts=prev.get("presentsDelivered", 0),
@@ -448,6 +451,12 @@ def santa_status(dests, now_ms):
     hlat, hlng = home_latlng()
     st["miles"] = miles_between(hlat, hlng, st["loc"]["lat"], st["loc"]["lng"])
     return st
+
+
+def _heading(a, b):
+    """-1 if Santa is flying west from a to b, +1 if east."""
+    dl = (b["lng"] - a["lng"] + 540) % 360 - 180
+    return 1 if dl > 0 else -1
 
 
 def countdown_parts(left_ms, now_ms=None):
@@ -1061,6 +1070,53 @@ def short_number(n):
     return str(int(n))
 
 
+# Santa's sleigh and a reindeer, facing left (west, the way Santa travels).
+# S/R use the Santa color setting; the rest are fixed colors.
+SLEIGH = [
+    "a.a..............",
+    ".aa.........RRw..",
+    "nbb........RR....",
+    ".bbbbbb...WWS....",
+    ".b.b.b.b-SSSSSSg.",
+    "b.....b..gSSSSSg.",
+    ".........gggggggg",
+]
+SLEIGH_ANCHOR = (12, 4)          # the sleigh sits on Santa's position
+SLEIGH_COLORS = {"a": (210, 170, 100), "b": (185, 110, 50), "n": (255, 30, 30),
+                 "w": (255, 255, 255), "W": (255, 220, 190), "g": (255, 190, 0),
+                 "-": (255, 190, 0)}
+
+
+def draw_sleigh(cv, sx, sy, facing, mw, H):
+    santa = cfg_color("SantaColor")
+    hat = tuple(min(255, int(v * 1.1)) for v in santa)
+    rows = SLEIGH if facing < 0 else [r[::-1] for r in SLEIGH]
+    w, h = len(rows[0]), len(rows)
+    ax = SLEIGH_ANCHOR[0] if facing < 0 else w - 1 - SLEIGH_ANCHOR[0]
+    x0, y0 = sx - ax, sy - SLEIGH_ANCHOR[1]
+    x0 = min(max(x0, 0), max(0, mw - w))         # keep the whole sleigh on the map
+    y0 = min(max(y0, 0), max(0, H - h))
+    on = set()
+    for j, row in enumerate(rows):
+        for i, ch in enumerate(row):
+            if ch != ".":
+                on.add((x0 + i, y0 + j))
+    # thin dark outline so it stands out over land
+    for (x, y) in on:
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                p = (x + dx, y + dy)
+                if p not in on and 0 <= p[0] < mw:
+                    cv.set(p[0], p[1], (0, 0, 0))
+    for j, row in enumerate(rows):
+        for i, ch in enumerate(row):
+            if ch == ".":
+                continue
+            col = santa if ch == "S" else hat if ch == "R" else SLEIGH_COLORS.get(ch, santa)
+            if 0 <= x0 + i < mw:
+                cv.set(x0 + i, y0 + j, col)
+
+
 def draw_frame(st, W, H):
     """Map on the left, info panel on the right."""
     mw = map_width(W, H)
@@ -1096,10 +1152,13 @@ def draw_frame(st, W, H):
             cv.set(hx + dx, hy + dy, cfg_color("HomeColor"))
     santa = cfg_color("SantaColor")
     sx, sy = view.pixel(st["loc"]["lat"], st["loc"]["lng"])
-    for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1), (-2, 0), (2, 0), (0, -2), (0, 2)):
-        if 0 <= sx + dx < mw:
-            cv.set(sx + dx, sy + dy, santa)
-    cv.set(sx, sy, tuple(min(255, v + 120) for v in santa))   # bright center
+    if cfg_str("SantaMarker").lower() == "dot" or mw < 40 or H < 16:
+        for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1), (-2, 0), (2, 0), (0, -2), (0, 2)):
+            if 0 <= sx + dx < mw:
+                cv.set(sx + dx, sy + dy, santa)
+        cv.set(sx, sy, tuple(min(255, v + 120) for v in santa))   # bright center
+    else:
+        draw_sleigh(cv, sx, sy, st.get("heading", -1), mw, H)
 
     px0 = mw + 2
     pw = W - px0 - int(cfg_num("PanelRightMargin", 0, 40))
