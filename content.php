@@ -543,7 +543,7 @@ $fppsantatrackerBoot = array(
       var on = !!(j && j.running), showing = !!(j && j.showing), b = $('#sStatus');
       // a preview / Show Once is a short separate run; the running display
       // (Start display) comes back after it if it was on
-      var cls = showing ? 'text-bg-info' : on ? 'text-bg-success' : 'text-bg-danger';
+      var cls = showing ? 'text-bg-info' : on ? 'text-bg-success' : 'text-bg-secondary';
       var txt = showing ? (on ? 'Running (showing a preview)' : 'Showing a preview') : on ? 'Running' : 'Stopped';
       b.className = 'badge rounded-pill ' + cls;
       b.textContent = txt;
