@@ -21,7 +21,7 @@ heading when the change is released.
   "HE'S HERE!", "DELIVERED") are wrapped instead of cut off. **Normal**
   keeps the previous panel.
 * **ETA shows** setting. **Time until Santa reaches my town** (the new
-  default) shows "HERE IN 6H 48M" on the panel, counting down all night to
+  default) shows "DEST IN 6H 48M" on the panel, counting down all night to
   his visit to your town, and "he reaches Your Town in 6 hours 48 min" in
   the scrolling text. After his visit it goes back to the time to his next
   stop. **Time to his next stop** keeps the previous "ETA n MIN".
