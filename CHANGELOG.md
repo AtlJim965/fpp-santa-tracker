@@ -11,6 +11,9 @@ heading when the change is released.
 
 ### Added
 
+* **Help** button on the settings page (or press **F1**): a help page that
+  describes each setting, with links at the top to each section and the
+  preview at the bottom.
 * **FPP 9 support**: the Plugin Manager now offers the plugin on FPP 9 as
   well as FPP 10 (tested on FPP 9: settings page, commands, Show on matrix,
   Start/Stop, Run live with the globe, uninstall).

@@ -39,7 +39,8 @@ press **Show on matrix** to try it on the real panel for **Show for
 were that moment until **Stop**. **Update every (seconds)**, next to it, sets
 how often the matrix redraws (15 is good for Christmas Eve). Under Location,
 the page names the nearest stop on Santa's route, so you can check your
-coordinates. Every setting is explained in [DOCUMENTATION.md](DOCUMENTATION.md).
+coordinates. The **Help** button (or **F1**) explains each setting on the page,
+and [DOCUMENTATION.md](DOCUMENTATION.md) has the full reference.
 
 FPP Commands (playlists, schedules, buttons):
 
