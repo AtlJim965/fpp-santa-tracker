@@ -20,8 +20,19 @@ heading when the change is released.
   map is zoomed in, so the map gets wider and long lines ("FLYING TO:",
   "HE'S HERE!", "DELIVERED") are wrapped instead of cut off. **Normal**
   keeps the previous panel.
+* **ETA shows** setting. **Time until Santa reaches my town** (the new
+  default) shows "HERE IN 6H 48M" on the panel, counting down all night to
+  his visit to your town, and "he reaches Your Town in 6 hours 48 min" in
+  the scrolling text. After his visit it goes back to the time to his next
+  stop. **Time to his next stop** keeps the previous "ETA n MIN".
 * `DOCUMENTATION.md`: a full reference for the settings, commands, map,
   files and troubleshooting, and this change log
+
+### Changed
+
+* The bottom lines of the "NOW IN" / "FLYING TO" panel are wrapped instead
+  of cut off at the right edge, and on short panels whole lines are left
+  out (gifts first) instead of running off the bottom.
 
 ## 2026-10-13
 

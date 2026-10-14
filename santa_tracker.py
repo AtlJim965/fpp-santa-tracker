@@ -120,6 +120,7 @@ DEFAULTS = {
     "Greeting2Color": "#00C83C",        # HO HO HO! / CHRISTMAS!
     # wording
     "CountdownPhrase": "begins his journey",
+    "EtaMode": "home",                  # home (until he reaches my town) | next (next stop)
     "ShowDistance": "1",
     "ShowGifts": "1",
     # scrolling text mode
@@ -368,6 +369,23 @@ def mins_text(ms):
     return "1 min" if m == 1 else f"{m} min"
 
 
+def hours_text(ms):
+    """'6 hours 48 min' / '1 hour' / '48 min' for the scrolling text."""
+    h, m = divmod(max(1, round(ms / 60000)), 60)
+    if not h:
+        return f"{m} min"
+    out = f"{h} hour{'s' if h > 1 else ''}"
+    return f"{out} {m} min" if m else out
+
+
+def hours_short(ms):
+    """'6H 48M' / '6H' / '48 MIN' for the panel."""
+    h, m = divmod(max(1, round(ms / 60000)), 60)
+    if not h:
+        return f"{m} MIN"
+    return f"{h}H {m}M" if m else f"{h}H"
+
+
 # ------------------------------------------------------------- your town
 def add_home_stop(dests):
     """Insert your town as a stop right after the nearest real stop. Later
@@ -450,9 +468,37 @@ def santa_status(dests, now_ms):
                           gifts=prev.get("presentsDelivered", 0),
                           visited=[s["location"] for s in stops[1:i]])
                 break
+    home = next((d for d in stops if d.get("id") == "home_stop"), None)
+    if home and st["state"] in ("stop", "flying") and now_ms < home["arrival"]:
+        st["home_left_ms"] = int(home["arrival"] - now_ms)
     hlat, hlng = home_latlng()
     st["miles"] = miles_between(hlat, hlng, st["loc"]["lat"], st["loc"]["lng"])
     return st
+
+
+def home_countdown(st):
+    """Show the time until Santa reaches your town (instead of the time to
+    his next stop)? Only while he hasn't reached it yet."""
+    return cfg_str("EtaMode").lower() != "next" and st.get("home_left_ms") is not None
+
+
+def panel_bottom(st):
+    """[(text, color role)] for the bottom of the NOW IN / FLYING TO panel,
+    most important first. A newline in the text forces a line break."""
+    d, state = st["dest"], st["state"]
+    at_home = state == "stop" and d.get("id") == "home_stop"
+    out = []
+    if home_countdown(st):
+        out.append((f"HERE IN\n{hours_short(st['home_left_ms'])}", "eta"))
+    elif state == "flying":
+        out.append((f"ETA {max(1, round(st['left_ms'] / 60000))} MIN", "eta"))
+    if at_home:
+        out.append(("HE'S HERE!", "greet1"))
+    elif cfg_bool("ShowDistance"):
+        out.append(("CLOSE BY!" if st["miles"] < 50 else f"{st['miles']:,.0f} MI", "distance"))
+    if state == "stop" and st["gifts"] and cfg_bool("ShowGifts"):
+        out.append((short_number(st["gifts"]) + " GIFTS DELIVERED", "gifts"))
+    return out
 
 
 def _heading(a, b):
@@ -498,10 +544,13 @@ def santa_message(st):
     if s == "stop":
         parts = [f"Santa is in {place(st['dest'])}"]
     elif s == "flying":
-        parts = [f"Santa is flying to {place(st['dest'])}",
-                 f"arriving in {mins_text(st['left_ms'])}"]
+        parts = [f"Santa is flying to {place(st['dest'])}"]
+        if not home_countdown(st) or st["dest"].get("id") == "home_stop":
+            parts.append(f"arriving in {mins_text(st['left_ms'])}")
     else:
         return "Santa is on his way!"
+    if home_countdown(st) and st["dest"].get("id") != "home_stop":
+        parts.append(f"he reaches {home_name()} in {hours_text(st['home_left_ms'])}")
     if cfg_bool("ShowDistance"):
         mi = st["miles"]
         parts.append("he's almost here!" if mi < 50 else f"{mi:,.0f} mi from {home_name()}")
@@ -1283,19 +1332,14 @@ def draw_frame(st, W, H):
         for ln in region[:room]:
             cv.fit_text(px0, y, ln, ink("region"), pw)
             y += 9
-        bottom = []
-        if state == "flying":
-            bottom.append((f"ETA {max(1, round(st['left_ms'] / 60000))} MIN", "eta"))
-        if state == "stop" and d.get("id") == "home_stop":
-            bottom.append(("HE'S HERE!", "greet1"))
-        elif cfg_bool("ShowDistance"):
-            bottom.append(("CLOSE BY!" if st["miles"] < 50 else f"{st['miles']:,.0f} MI",
-                           "distance"))
-        if state == "stop" and st["gifts"] and cfg_bool("ShowGifts"):
-            bottom.append((short_number(st["gifts"]) + " GIFTS", "gifts"))
-            bottom.append(("DELIVERED", "gifts"))
-        yb = H - 9 * len(bottom)
-        for txt, role in bottom:
+        rows = []
+        for txt, role in panel_bottom(st):   # whole items only, while they fit
+            lines = [(ln, role) for part in txt.split("\n") for ln in wrap(part, hard)]
+            if y + 2 + 9 * (len(rows) + len(lines)) - 2 > H:
+                break
+            rows += lines
+        yb = H - 9 * len(rows)
+        for txt, role in rows:
             cv.fit_text(px0, yb, txt, ink(role), pw)
             yb += 9
     else:
@@ -1330,18 +1374,9 @@ def draw_small_panel(cv, st, x, pw, H, ink):
         for ln in lines[:2]:
             line(y, ln, "region")
             y += 7
-    bottom = []
-    if state == "flying":
-        bottom.append((f"ETA {max(1, round(st['left_ms'] / 60000))} MIN", "eta"))
-    if state == "stop" and d.get("id") == "home_stop":
-        bottom.append(("HE'S HERE!", "greet1"))
-    elif cfg_bool("ShowDistance"):
-        bottom.append(("CLOSE BY!" if st["miles"] < 50 else f"{st['miles']:,.0f} MI", "distance"))
-    if state == "stop" and st["gifts"] and cfg_bool("ShowGifts"):
-        bottom.append((short_number(st["gifts"]) + " GIFTS DELIVERED", "gifts"))
     rows = []
-    for txt, role in bottom:                 # whole items only, while they fit
-        lines = [(ln, role) for ln in wrap(txt, cols)]
+    for txt, role in panel_bottom(st):                 # whole items only, while they fit
+        lines = [(ln, role) for part in txt.split("\n") for ln in wrap(part, cols)]
         if y + 3 + 7 * (len(rows) + len(lines)) - 2 > H:
             break
         rows += lines

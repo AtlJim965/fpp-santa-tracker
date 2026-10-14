@@ -30,7 +30,7 @@ in FPP. It can show:
   on the right: a countdown before Christmas Eve, then "NOW IN" / "FLYING TO",
   the distance from your town and the gifts delivered
 * **a scrolling text message**, such as "Santa is flying to Seville, Spain -
-  arriving in 3 min - 4,187 mi from Your Town"
+  he reaches Your Town in 6 hours 48 min - 4,187 mi from Your Town"
 * **the map, then the scrolling text**, one after the other
 
 Santa's route comes from Google's Santa Tracker. Your town can be added as
@@ -160,6 +160,7 @@ The per-line colors:
 | Setting | Key | Default | Notes |
 |---|---|---|---|
 | Countdown message | `CountdownPhrase` | begins his journey | Shown as "Santa ... in 72 days" |
+| ETA shows | `EtaMode` | Time until Santa reaches my town | Or **Time to his next stop**. See [What the info panel shows](#what-the-info-panel-shows). |
 | Show distance from my town | `ShowDistance` | on | |
 | Show gifts delivered | `ShowGifts` | on | |
 
@@ -262,12 +263,22 @@ coastline, with lakes such as the Great Lakes cut out.
 | When | Panel |
 |---|---|
 | Before Christmas Eve | "SANTA BEGINS HIS JOURNEY IN", the number of days, "HO HO HO!". Days are counted on the calendar in your time zone. On Christmas Eve it counts hours, then minutes, until takeoff. |
-| Flying | "FLYING TO:", the next city and its region, "ETA n MIN", the distance from your town |
-| At a stop | "NOW IN:", the city and region, the distance, the gifts delivered so far |
+| Flying | "FLYING TO:", the next city and its region, the time until he reaches your town ("HERE IN 6H 48M"), the distance from your town |
+| At a stop | "NOW IN:", the city and region, "HERE IN ...", the distance, the gifts delivered so far |
 | At your town | "NOW IN:" your town, "HE'S HERE!" |
 | Christmas morning | "SANTA IS HOME!", "MERRY CHRISTMAS!", the total gifts delivered |
 
 The distance shows "CLOSE BY!" when Santa is under 50 miles away.
+
+**ETA.** With **ETA shows: Time until Santa reaches my town** (the default),
+the panel shows "HERE IN" and the time until Santa reaches your town, such as
+"6H 48M", then "4 MIN" as he gets close. It counts down all through Christmas
+Eve, at stops and while flying, and the scrolling text says "he reaches Your
+Town in 6 hours 48 min". Once he has visited your town, it goes back to the
+time to his next stop ("ETA 3 MIN"). It needs **Make my town one of Santa's
+stops**; without it, the panel always shows the time to his next stop. With
+**Time to his next stop**, it is always "ETA n MIN", the minutes until his
+next stop, which is usually only 1 to 5 minutes away.
 
 **Small text beside the zoomed-in map.** With **Text beside the zoomed-in
 map: Small** (the default), the "NOW IN" / "FLYING TO" panel uses a tiny

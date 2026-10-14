@@ -185,6 +185,11 @@ $fppsantatrackerBoot = array(
           <input type="text" class="form-control" style="min-width: 12rem" id="sPhrase" data-key="CountdownPhrase" maxlength="60" placeholder="begins his journey">
           <span class="input-group-text">in <span id="sDaysWord" class="mx-1">&hellip;</span> days</span>
         </div>
+        <div class="mt-3"><label class="form-label mb-1" for="sEta">ETA shows</label>
+          <select class="form-select" data-key="EtaMode" id="sEta">
+            <option value="home">Time until Santa reaches my town</option>
+            <option value="next">Time to his next stop</option>
+          </select></div>
         <div class="form-check mt-3">
           <input class="form-check-input" type="checkbox" id="sDist" data-key="ShowDistance">
           <label class="form-check-label" for="sDist">Show distance from my town</label>
