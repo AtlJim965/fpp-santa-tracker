@@ -174,7 +174,7 @@ The per-line colors:
 | Overlay model | `ModelName` | first model | The Pixel Overlay Model to draw on |
 | Show | `DisplayMode` | Map with info panel | Or **Scrolling text** / **Map, then scrolling text** |
 | Map seconds | `MapSeconds` | 20 | How long the map shows before the text, in "Map, then scrolling text" mode |
-| Update every (seconds) | `RefreshSeconds` | 30 | How often the matrix redraws (5-3600): the running display, **Show on matrix**, **Show Once** and the map part of "Map, then scrolling text". 15 is a good choice for Christmas Eve. The matrix only reloads when the picture has changed. |
+| Update every (seconds) | `RefreshSeconds` | 30 | Under the preview, next to **Run live from this moment**. How often the matrix redraws (5-3600): the running display, **Show on matrix**, **Show Once** and the map part of "Map, then scrolling text". 15 is a good choice for Christmas Eve. The matrix only reloads when the picture has changed. |
 | Start the display automatically when FPP starts | `AutoStart` | off | |
 
 ### Scrolling text
@@ -283,10 +283,12 @@ borders. With **Zoom in when Santa is near**, the map switches to the zoomed
 view while Santa is inside that area and back to the world when he leaves.
 
 **Globe.** With **Map view: Globe (zoom in when Santa is near)**, the world
-map is replaced by a round globe, as tall as the panel and tilted to show the
-northern hemisphere. On Christmas Eve it turns to keep Santa in the middle,
-so it rotates as he travels west; before and after, while he is at the North
-Pole, it slowly spins (one turn every 18 minutes, a step each time the
+map is replaced by a round globe, as tall as the panel. On Christmas Eve the
+globe holds still and Santa flies across its face; when he is about a third
+of the way to the edge it turns, and tilts north or south, to bring him back
+near the middle (so stops far south, such as South Georgia, aren't stuck on
+the bottom edge). Before and after, while he is at the North Pole, it is
+tilted to show the northern hemisphere and slowly spins (one turn every 18 minutes, a step each time the
 display updates). The night side is shaded from the sun's real position, so
 you can see Santa riding the edge of the night (he visits each place around
 midnight). **Globe night-side brightness** sets how dark the night side is

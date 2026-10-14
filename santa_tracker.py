@@ -864,19 +864,23 @@ GLOBE_TILT = 25.0            # latitude at the centre of the globe
 GLOBE_SPIN = 20.0            # degrees per minute while Santa is at the North Pole
 GLOBE_SS = 2                 # samples per pixel across (edge and coast smoothing)
 GLOBE_TWILIGHT = 0.06        # soft day/night edge (sine of the sun's elevation)
+GLOBE_LAT_RANGE = (-55.0, 60.0)   # how far the globe tilts to follow Santa north/south
+GLOBE_RECENTER = 30.0        # turn the globe when Santa is this many degrees from its centre
+GLOBE_LEAD = 20.0            # ...putting him this far behind the centre, so he flies across it
 
 
 class GlobeView:
-    """Orthographic globe centred on (GLOBE_TILT, lon_center), as large as
+    """Orthographic globe centred on (lat_center, lon_center), as large as
     the map's height allows, centred in the map area."""
 
-    def __init__(self, w, h, lon_center):
+    def __init__(self, w, h, lon_center, lat_center=GLOBE_TILT):
         self.name, self.w, self.h = "globe", w, h
         # whole degrees, so the land lookup can be reused while Santa is near
         self.lonc = (round(lon_center) + 180) % 360 - 180
+        self.latc = round(lat_center)
         self.r = min(w, h) / 2 - 1
         self.cx, self.cy = w / 2, h / 2
-        self.p0, self.l0 = math.radians(GLOBE_TILT), math.radians(self.lonc)
+        self.p0, self.l0 = math.radians(self.latc), math.radians(self.lonc)
 
     def xy(self, lat, lng):
         """(x, y, on the visible side)"""
@@ -895,15 +899,28 @@ class GlobeView:
         return min(max(int(x), 0), self.w - 1), min(max(int(y), 0), self.h - 1)
 
     def key(self):
-        return ("globe", self.w, self.h, self.lonc)
+        return ("globe", self.w, self.h, self.lonc, self.latc)
+
+
+_globe_centre = {}
 
 
 def globe_view(st, w, h):
-    if st["state"] in ("stop", "flying"):
-        lon = st["loc"]["lng"]                    # follow Santa
-    else:
+    """While Santa travels the globe holds still and he flies across its face;
+    once he is GLOBE_RECENTER degrees from the centre it turns (and tilts
+    north or south) to bring him back, with the centre a little ahead of him.
+    At the North Pole (countdown, Christmas morning) it slowly spins."""
+    if st["state"] not in ("stop", "flying"):
+        _globe_centre.clear()
         lon = (st.get("now_ms", time.time() * 1000) / 60000 * GLOBE_SPIN) % 360 - 180
-    return GlobeView(w, h, lon)
+        return GlobeView(w, h, lon)
+    lat, lng = st["loc"]["lat"], st["loc"]["lng"]
+    c = _globe_centre.get("c")
+    if c is None or miles_between(c[0], c[1], lat, lng) / 69.1 > GLOBE_RECENTER:
+        lo, hi = GLOBE_LAT_RANGE
+        c = (min(max(lat, lo), hi), lng + st.get("heading", -1) * GLOBE_LEAD)
+        _globe_centre["c"] = c
+    return GlobeView(w, h, c[1], c[0])
 
 
 def globe_samples(view):

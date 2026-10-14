@@ -52,6 +52,13 @@ heading when the change is released.
 
 ### Changed
 
+* Globe: Santa now flies across the face of the globe, and the globe only
+  turns (and tilts north or south) when he is about a third of the way to
+  the edge, instead of keeping him pinned in the middle, so you can see him
+  move. Stops far south (South Georgia, the Falklands) are no longer on the
+  bottom edge. The globe is redrawn much less often, so updates are quicker.
+* **Update every (seconds)** moved from the Display section to under the
+  preview, next to **Run live from this moment**.
 * The preview's **Seconds** box is now labelled **Show for (seconds)**: how
   long **Show on matrix** plays before it turns the matrix off.
 * **Show on matrix**, **Show Once** and the map part of **Map, then

@@ -51,10 +51,16 @@ $fppsantatrackerBoot = array(
                         title="Saves your settings, then plays this moment on the matrix for the seconds set, then turns the matrix off">Show on matrix</button>
               </div>
             </div>
-            <div class="mt-2">
-              <button type="button" class="btn btn-outline-secondary btn-sm" id="sSimStart"
-                      title="For testing: starts the running display as if it were this moment. It keeps going until you press Stop.">Run live from this moment</button>
-              <span class="small text-body-secondary ms-1">Testing: the running display, as if it were this moment, until <b>Stop</b>.</span>
+            <div class="row g-2 align-items-end mt-1">
+              <div class="col-6 col-md-3">
+                <label class="form-label mb-1" for="sRefresh" title="How often the matrix redraws: Start Display, Run live, Show on matrix and Show Once">Update every (seconds)</label>
+                <input type="number" class="form-control" id="sRefresh" data-key="RefreshSeconds" min="5" max="3600">
+              </div>
+              <div class="col-6 col-md-auto">
+                <button type="button" class="btn btn-outline-secondary w-100" id="sSimStart"
+                        title="For testing: starts the running display as if it were this moment. It keeps going until you press Stop.">Run live from this moment</button>
+              </div>
+              <div class="col-12 col-md small text-body-secondary">The matrix redraws every <b>Update every</b> seconds (15 is good for Christmas Eve). <b>Run live</b> is for testing: the running display, as if it were this moment, until <b>Stop</b>.</div>
             </div>
             <div class="form-check mt-2">
               <input class="form-check-input" type="checkbox" id="sLed" checked>
@@ -221,9 +227,6 @@ $fppsantatrackerBoot = array(
           <div class="col-6"><label class="form-label mb-1" for="sMapSecs">Map seconds</label>
             <input type="number" class="form-control" id="sMapSecs" data-key="MapSeconds" min="3" max="3600">
             <div class="form-text">For Show Once, and Map-then-text.</div></div>
-          <div class="col-6"><label class="form-label mb-1" for="sRefresh">Update every (seconds)</label>
-            <input type="number" class="form-control" id="sRefresh" data-key="RefreshSeconds" min="5" max="3600">
-            <div class="form-text">While the display is running.</div></div>
         </div>
         <div class="form-check mt-2">
           <input class="form-check-input" type="checkbox" id="sAuto" data-key="AutoStart">
