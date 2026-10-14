@@ -581,7 +581,7 @@ def panel_bottom(st):
     at_home = state == "stop" and d.get("id") == "home_stop"
     out = []
     if home_countdown(st):
-        out.append((f"DEST IN\n{hours_short(st['home_left_ms'])}", "eta"))
+        out.append((f"LOCAL IN\n{hours_short(st['home_left_ms'])}", "eta"))
     elif state == "flying":
         out.append((f"ETA {max(1, round(st['left_ms'] / 60000))} MIN", "eta"))
     if at_home:
