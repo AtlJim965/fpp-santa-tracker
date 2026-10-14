@@ -236,7 +236,7 @@ same moments are available to the **Santa Tracker - Preview** command.
 **Show on matrix** saves your settings, then plays the chosen moment on the
 matrix for **Show for (seconds)** (3-600) and then turns the matrix off. The
 clock keeps running from that moment and the matrix redraws every **Update
-every** seconds, so a preview of "Approaching my town" plays out: "DEST IN 1
+every** seconds, so a preview of "Approaching my town" plays out: "LOCAL IN 1
 MIN", then "HE'S HERE!".
 
 **Run live from this moment** is for testing the running display: it starts
@@ -338,8 +338,8 @@ coastline, with lakes such as the Great Lakes cut out.
 | When | Panel |
 |---|---|
 | Before Christmas Eve | "SANTA BEGINS HIS JOURNEY IN", the number of days, "HO HO HO!". Days are counted on the calendar in your time zone. On Christmas Eve it counts hours, then minutes, until takeoff. |
-| Flying | "FLYING TO:", the next city and its region, the time until he reaches your town ("DEST IN 6H 48M"), the distance from your town |
-| At a stop | "NOW IN:", the city and region, "DEST IN ..." (time until he reaches your town), the distance, the gifts delivered so far |
+| Flying | "FLYING TO:", the next city and its region, the time until he reaches your town ("LOCAL IN 6H 48M"), the distance from your town |
+| At a stop | "NOW IN:", the city and region, "LOCAL IN ..." (time until he reaches your town), the distance, the gifts delivered so far |
 | At your town | "NOW IN:" your town, "HE'S HERE!" |
 | Christmas morning | "SANTA IS HOME!", "MERRY CHRISTMAS!", the total gifts delivered |
 
@@ -349,7 +349,7 @@ left Your Town"). Without **Make my town one of Santa's stops**, "been to
 your town" means the stop on his route nearest to you.
 
 **ETA.** With **ETA shows: Time until Santa reaches my town** (the default),
-the panel shows "DEST IN" and the time until Santa reaches your town, such as
+the panel shows "LOCAL IN" and the time until Santa reaches your town, such as
 "6H 48M", then "4 MIN" as he gets close. It counts down all through Christmas
 Eve, at stops and while flying, and the scrolling text says "he reaches Your
 Town in 6 hours 48 min". Once he has visited your town, it goes back to the

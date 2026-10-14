@@ -134,7 +134,7 @@
       journey</i> in 72 days".</dd>
     <dt>ETA shows</dt>
     <dd><b>Time until Santa reaches my town</b> (default) counts down all night
-      to his visit ("DEST IN 6H 48M"), then shows the time to his next stop.
+      to his visit ("LOCAL IN 6H 48M"), then shows the time to his next stop.
       <b>Time to his next stop</b> always shows "ETA n MIN".</dd>
     <dt>Show distance from my town</dt>
     <dd>How far away Santa is. Within 50 miles it says "CLOSE BY!", or
