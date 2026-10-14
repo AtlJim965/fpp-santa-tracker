@@ -51,6 +51,12 @@
     <dt>City name and State</dt>
     <dd>Shown on the panel and in the messages. A blank city shows as "Your
       Town".</dd>
+    <dt>Follow FPP's location &amp; time zone</dt>
+    <dd>On by default. Uses the location and time zone set in FPP (Settings
+      &gt; System), so the boxes below show FPP's values and are locked. If
+      they are changed in FPP later, the plugin picks that up and saves it
+      automatically. Untick it to type a different town. If FPP has no
+      location set, the values typed below are used until it has one.</dd>
     <dt>Latitude and Longitude</dt>
     <dd>Where your town is, in decimal degrees (for example 42.088289 and
       -87.980451). West of Greenwich, which includes the Americas, the
@@ -58,9 +64,6 @@
       on Santa's route, so you can check the numbers are right.</dd>
     <dt>Time zone</dt>
     <dd>Used for the countdown and the preview times.</dd>
-    <dt>Use FPP's location &amp; time zone</dt>
-    <dd>Copies the location and time zone from FPP's own settings
-      (Settings &gt; System).</dd>
     <dt>Make my town one of Santa's stops</dt>
     <dd>Adds your town to Santa's route, just after the nearest real stop
       (on by default).</dd>

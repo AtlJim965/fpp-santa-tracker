@@ -105,6 +105,7 @@ The setting names in `code` are the keys stored in
 |---|---|---|---|
 | City name | `CityName` | blank ("Your Town") | Shown on the panel and in messages |
 | State | `State` | blank | Shown under the city name |
+| Follow FPP's location & time zone | `FollowFppLocation` | on | See below |
 | Latitude | `Latitude` | FPP's location | Decimal degrees, e.g. `42.088289` |
 | Longitude | `Longitude` | FPP's location | Decimal degrees. West of Greenwich (the Americas) is negative, e.g. `-87.980451` |
 | Time zone | `TimeZone` | FPP's time zone | Used for the countdown and preview times |
@@ -112,8 +113,20 @@ The setting names in `code` are the keys stored in
 | Minutes "Flying to" shows | `HomeApproachMin` | 3 | How long he flies to your town (1-30) |
 | Minutes "Now in" shows | `HomeStayMin` | 2 | How long he stays (1-30) |
 
-**Use FPP's location & time zone** copies the values from FPP's own settings
-(Settings > System). Under the fields, the page shows where your town is
+**Follow FPP's location & time zone** (on by default) uses the location and
+time zone set in FPP (Settings > System). The Latitude, Longitude and Time
+zone boxes show FPP's values and can't be changed. If they are changed in
+FPP later, the plugin picks that up and saves it in its own settings: when
+the settings page is opened, within 5 minutes while the display runs, and
+when the plugin is updated. Untick it to type a different town; the plugin
+then keeps those values whatever FPP is set to. If FPP has no location set,
+the values typed in the boxes are used until it has one.
+
+Settings saved by an older version (before this box existed) follow FPP if
+they still match FPP's location and time zone, and keep their own values if
+they don't.
+
+Under the fields, the page shows where your town is
 marked and the nearest stop on Santa's route, so you can check the
 coordinates. For example, Arlington Heights, IL shows "Chicago, Illinois, USA
 (23 mi)".
@@ -367,7 +380,7 @@ downloads:
 
 | Path | What it is |
 |---|---|
-| `config/plugin.fpp-santa-tracker` | Your settings. Kept on uninstall. |
+| `config/plugin.fpp-santa-tracker` | Your settings. With **Follow FPP's location & time zone** on, the plugin updates the location and time zone here when they change in FPP. Kept on uninstall. |
 | `plugindata/fpp-santa-tracker/` | The saved map data, small status notes while the display runs, and the overlay model's state from before the plugin first drew on it |
 | `images/santa_map_*.png` | The current map picture, which FPP's overlay Image effect reads. Old frames are deleted automatically. |
 | `logs/plugin-fpp-santa-tracker.log` | The plugin's log (Status/Control > Logs) |

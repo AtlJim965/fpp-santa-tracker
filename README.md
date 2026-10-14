@@ -66,7 +66,9 @@ preview is in use, the plugin downloads:
 
 ## Files it writes and what it changes
 
-* `config/plugin.fpp-santa-tracker`: your settings
+* `config/plugin.fpp-santa-tracker`: your settings (with **Follow FPP's
+  location & time zone** on, the plugin updates the location and time zone
+  here when they change in FPP)
 * `plugindata/fpp-santa-tracker/`: the saved map data, small status
   notes while the display runs, and the overlay model's state from before the
   plugin first drew on it

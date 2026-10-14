@@ -88,14 +88,19 @@ $fppsantatrackerBoot = array(
             <input type="text" class="form-control" id="sCity" data-key="CityName" maxlength="40" placeholder="Your Town"></div>
           <div class="col-12 col-sm-6"><label class="form-label mb-1" for="sState">State</label>
             <input type="text" class="form-control" id="sState" data-key="State" maxlength="40" placeholder="State"></div>
+          <div class="col-12">
+            <div class="form-check mb-0">
+              <input class="form-check-input" type="checkbox" id="sFollow" data-key="FollowFppLocation">
+              <label class="form-check-label" for="sFollow"
+                     title="Uses the location and time zone set in FPP (Settings &gt; System), and picks up any change made there">Follow FPP's location &amp; time zone</label>
+            </div>
+            <div class="form-text mt-0" id="sFollowNote"></div></div>
           <div class="col-6"><label class="form-label mb-1" for="sLat">Latitude</label>
             <input type="text" inputmode="decimal" class="form-control" id="sLat" data-key="Latitude" placeholder="Latitude"></div>
           <div class="col-6"><label class="form-label mb-1" for="sLng">Longitude</label>
             <input type="text" inputmode="decimal" class="form-control" id="sLng" data-key="Longitude" placeholder="Longitude"></div>
           <div class="col-12 col-sm-6"><label class="form-label mb-1" for="sTz">Time zone</label>
             <select class="form-select" data-key="TimeZone" id="sTz"></select></div>
-          <div class="col-12 col-sm-6 d-flex align-items-end">
-            <button type="button" class="btn btn-outline-secondary w-100" id="sUseFpp">Use FPP's location &amp; time zone</button></div>
         </div>
         <div class="small mt-2" id="sLocNote"></div>
         <div class="form-check mt-3">
@@ -425,7 +430,8 @@ $fppsantatrackerBoot = array(
     $$('[data-key]').forEach(function (el) {
       var k = el.getAttribute('data-key');
       var v = s[k] !== undefined ? String(s[k]) : '';
-      if (el.type === 'checkbox') el.checked = (v === '1' || v === 'true');
+      // FollowFppLocation is 'auto' until FPP has a location: start it ticked
+      if (el.type === 'checkbox') el.checked = (v === '1' || v === 'true' || (k === 'FollowFppLocation' && v === 'auto'));
       else if (el.type === 'color') el.value = /^#[0-9a-fA-F]{6}$/.test(v) ? v : '#FFFFFF';
       else if (el.tagName === 'SELECT') {
         if (v && !Array.prototype.some.call(el.options, function (o) { return o.value === v; })) {
@@ -437,6 +443,38 @@ $fppsantatrackerBoot = array(
     buildCustom(String(s.PanelCustomColors || '').split(',').filter(function (c) { return /^#/.test(c.trim()); }));
     syncCodes();
     refreshVisibility();
+    followFpp();
+  }
+
+  // "Follow FPP's location & time zone": the boxes show FPP's values and are
+  // locked; the plugin picks up any change later made in FPP's settings
+  var ownLoc = null;   // what was typed before ticking the box, put back on unticking
+  function followFpp() {
+    var on = $('#sFollow').checked;
+    var f = info.fpp || {};
+    var hasLoc = !isNaN(parseFloat(f.Latitude)) && !isNaN(parseFloat(f.Longitude));
+    var lockLoc = on && hasLoc, lockTz = on && hasLoc && !!f.TimeZone;
+    if (lockLoc && !$('#sLat').disabled) ownLoc = [$('#sLat').value, $('#sLng').value, $('#sTz').value];
+    if (!on && ownLoc) {
+      $('#sLat').value = ownLoc[0];
+      $('#sLng').value = ownLoc[1];
+      $('#sTz').value = ownLoc[2];
+      ownLoc = null;
+    }
+    if (lockLoc) {
+      $('#sLat').value = f.Latitude;
+      $('#sLng').value = f.Longitude;
+    }
+    if (lockTz) {
+      var tzSel = $('#sTz');
+      if (!Array.prototype.some.call(tzSel.options, function (o) { return o.value === f.TimeZone; })) tzSel.appendChild(new Option(f.TimeZone, f.TimeZone));
+      tzSel.value = f.TimeZone;
+    }
+    $('#sLat').disabled = $('#sLng').disabled = lockLoc;
+    $('#sTz').disabled = lockTz;
+    $('#sFollowNote').textContent = !on ? 'Using the location and time zone below, whatever FPP is set to.'
+      : hasLoc ? 'Set in FPP under Settings > System. A change made there is picked up and saved here automatically.'
+      : 'FPP has no location set (Settings > System), so the values typed below are used until it has one.';
   }
   function getForm() {
     var out = {};
@@ -608,20 +646,6 @@ $fppsantatrackerBoot = array(
     });
   }
 
-  // read one of FPP's own settings live (falls back to what the page loaded with)
-  function fppSetting(name) {
-    return fetch('/api/settings/' + encodeURIComponent(name)).then(function (r) { return r.text(); }).then(function (t) {
-      var v = '';
-      try {
-        var j = JSON.parse(t);
-        if (j && typeof j === 'object') v = j.value !== undefined ? j.value : (j[name] !== undefined ? j[name] : '');
-        else v = j;
-      } catch (e) { v = t; }
-      v = String(v === null || v === undefined ? '' : v).trim().replace(/^"|"$/g, '');
-      return v || (info.fpp || {})[name] || '';
-    }).catch(function () { return (info.fpp || {})[name] || ''; });
-  }
-
   // plain-English check of the coordinates, under the Location boxes
   function checkLocation(nearest) {
     var note = $('#sLocNote');
@@ -655,6 +679,7 @@ $fppsantatrackerBoot = array(
   // ---------- wire up ----------
   root.addEventListener('input', function (e) { if (e.target.closest('[data-key]')) changed(); });
   root.addEventListener('change', function (e) { if (e.target.closest('[data-key]')) changed(); });
+  $('#sFollow').addEventListener('change', followFpp);   // before changed() redraws the preview
   $('#sCustomCount').addEventListener('change', function () { showCustomCount(); changed(); });
   $('#sMoment').addEventListener('change', runPreview);
   $('#sLed').addEventListener('change', function () { if (lastPreview) drawPng(lastPreview); });
@@ -671,23 +696,6 @@ $fppsantatrackerBoot = array(
     } else {
       window.open('plugin.php?plugin=fpp-santa-tracker&page=help/content.php', '_blank');
     }
-  });
-  $('#sUseFpp').addEventListener('click', function () {
-    Promise.all([fppSetting('Latitude'), fppSetting('Longitude'), fppSetting('TimeZone')]).then(function (v) {
-      if (!v[0] || !v[1] || isNaN(parseFloat(v[0])) || isNaN(parseFloat(v[1]))) {
-        toast('FPP doesn\'t have a location set. Set it under Settings, or type your coordinates here.', false);
-        return;
-      }
-      $('#sLat').value = v[0];
-      $('#sLng').value = v[1];
-      if (v[2]) {
-        var tzSel = $('#sTz');
-        if (!Array.prototype.some.call(tzSel.options, function (o) { return o.value === v[2]; })) tzSel.appendChild(new Option(v[2], v[2]));
-        tzSel.value = v[2];
-      }
-      toast('Using FPP\'s location: ' + v[0] + ', ' + v[1] + (v[2] ? ' (' + v[2] + ')' : '') + '. Check the map, then Save.', true);
-      changed();
-    });
   });
   $('#sStart').addEventListener('click', function () {
     (isDirty() ? save() : Promise.resolve(true)).then(function (ok) {
