@@ -93,6 +93,9 @@ The buttons at the top:
   describes each setting, with links at the top to each section and the
   preview last.
 
+Point at the small **?** beside a section's title (or tap it on a phone) for
+a short description of that section.
+
 The setting names in `code` are the keys stored in
 `config/plugin.fpp-santa-tracker`.
 
