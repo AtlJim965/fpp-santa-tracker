@@ -17,7 +17,7 @@ DATADIR="$MEDIADIR/plugindata/fpp-santa-tracker"
 mkdir -p "$DATADIR"
 chown -R "$OWNER" "$DATADIR" 2>/dev/null || true
 # files from older versions of the plugin
-rm -f "$DATADIR"/land_*x*.json "$DATADIR"/resume_*.json "$DATADIR"/*.tmp
+rm -f "$DATADIR"/land_*x*.json "$DATADIR"/resume_*.json "$DATADIR"/*.tmp "$DATADIR"/santa_route.json
 chmod 755 "$PLUGINDIR/santa_tracker.py" "$PLUGINDIR"/commands/*.sh "$PLUGINDIR"/scripts/*.sh 2>/dev/null || true
 
 # This plugin has commands/descriptions.json and no callbacks script, so fppd

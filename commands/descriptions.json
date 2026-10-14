@@ -2,7 +2,7 @@
     {
         "name": "Santa Tracker - Start",
         "script": "start.sh",
-        "description": "Start the Santa Tracker display. It keeps running and updating until Santa Tracker - Stop.",
+        "description": "Start the Santa Tracker display. It keeps running and updating until Santa Tracker - Stop. Simulate time runs it as if it were that moment (for testing); leave it at Real time for the show.",
         "args": [
             {
                 "name": "Display",
@@ -11,6 +11,17 @@
                 "contents": ["Saved setting", "Map", "Text", "Map then text"],
                 "default": "Saved setting",
                 "optional": false
+            },
+            {
+                "name": "Simulate time",
+                "description": "Run as if it were this moment (testing only)",
+                "type": "string",
+                "contents": ["Real time", "30 days before", "14 days before", "7 days before",
+                             "3 days before", "1 day before", "Christmas Eve - takeoff",
+                             "Christmas Eve - noon", "Christmas Eve - 6 PM", "Christmas Eve - 9 PM",
+                             "Approaching my town", "Santa in my town", "Christmas morning"],
+                "default": "Real time",
+                "optional": true
             }
         ]
     },
