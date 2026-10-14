@@ -97,10 +97,12 @@ DEFAULTS = {
     "SantaMarker": "sleigh",            # sleigh | dot
     "TrailColor": "#FFB400",
     "ShowTrail": "1",
-    "MapView": "auto",                  # auto | world | local
+    "MapView": "auto",                  # auto | world | local | globe
     "LocalZoom": "medium",              # wide | medium | close
     "WorldShape": "fill",               # fill | true (world map)
     "ZoomedText": "small",              # small | normal (panel text, zoomed map)
+    "GlobeOceanColor": "#002D78",       # globe: ocean (space around it is black)
+    "GlobeNight": "50",                 # globe: night-side brightness, percent
     "ShowBorders": "1",                 # state/country lines on the zoomed map
     "BorderColor": "#006428",
     # right-hand panel colors
@@ -468,6 +470,7 @@ def santa_status(dests, now_ms):
                           gifts=prev.get("presentsDelivered", 0),
                           visited=[s["location"] for s in stops[1:i]])
                 break
+    st["now_ms"] = now_ms
     hlat, hlng = home_latlng()
     home = next((d for d in stops if d.get("id") == "home_stop"), None)
     if home and st["state"] in ("stop", "flying") and now_ms < home["arrival"]:
@@ -851,7 +854,137 @@ def pick_view(st, w, h):
         return local
     if st["state"] in ("stop", "flying") and local.contains(st["loc"]["lat"], st["loc"]["lng"]):
         return local
+    if mode == "globe":
+        return globe_view(st, w, h)
     return world_view(w, h)
+
+
+# ------------------------------------------------------------- the globe
+# 'Globe' map view: an orthographic globe tilted to show the northern
+# hemisphere, turned to follow Santa on Christmas Eve and slowly spinning
+# the rest of the time, with the night side shaded from the sun's position.
+GLOBE_TILT = 25.0            # latitude at the centre of the globe
+GLOBE_SPIN = 20.0            # degrees per minute while Santa is at the North Pole
+GLOBE_SS = 2                 # samples per pixel across (edge and coast smoothing)
+GLOBE_TWILIGHT = 0.06        # soft day/night edge (sine of the sun's elevation)
+
+
+class GlobeView:
+    """Orthographic globe centred on (GLOBE_TILT, lon_center), as large as
+    the map's height allows, centred in the map area."""
+
+    def __init__(self, w, h, lon_center):
+        self.name, self.w, self.h = "globe", w, h
+        # whole degrees, so the land lookup can be reused while Santa is near
+        self.lonc = (round(lon_center) + 180) % 360 - 180
+        self.r = min(w, h) / 2 - 1
+        self.cx, self.cy = w / 2, h / 2
+        self.p0, self.l0 = math.radians(GLOBE_TILT), math.radians(self.lonc)
+
+    def xy(self, lat, lng):
+        """(x, y, on the visible side)"""
+        p, dl = math.radians(lat), math.radians(lng) - self.l0
+        cosc = math.sin(self.p0) * math.sin(p) + math.cos(self.p0) * math.cos(p) * math.cos(dl)
+        x = math.cos(p) * math.sin(dl)
+        y = math.cos(self.p0) * math.sin(p) - math.sin(self.p0) * math.cos(p) * math.cos(dl)
+        return self.cx + x * self.r, self.cy - y * self.r, cosc >= 0
+
+    def contains(self, lat, lng):
+        x, y, front = self.xy(lat, lng)
+        return front and 0 <= x < self.w and 0 <= y < self.h
+
+    def pixel(self, lat, lng):
+        x, y, _ = self.xy(lat, lng)
+        return min(max(int(x), 0), self.w - 1), min(max(int(y), 0), self.h - 1)
+
+    def key(self):
+        return ("globe", self.w, self.h, self.lonc)
+
+
+def globe_view(st, w, h):
+    if st["state"] in ("stop", "flying"):
+        lon = st["loc"]["lng"]                    # follow Santa
+    else:
+        lon = (st.get("now_ms", time.time() * 1000) / 60000 * GLOBE_SPIN) % 360 - 180
+    return GlobeView(w, h, lon)
+
+
+def globe_samples(view):
+    """Per sample: (pixel index, sin lat, cos lat, longitude in radians, land)
+    for every sample on the globe; cached per view (the land lookup is the
+    slow part, the night shading is redone every frame)."""
+    key = ("globe-samples",) + view.key()
+    if key in _coverage_cache:
+        return _coverage_cache[key]
+    for k in [k for k in _coverage_cache if k[0] == "globe-samples"]:
+        del _coverage_cache[k]                    # keep one globe in memory
+    from array import array
+    mask, MW, MH = land_mask(), MASK_W, MASK_H
+    ss = GLOBE_SS
+    idx, sinp, cosp, lam, land = array("i"), array("f"), array("f"), array("f"), bytearray()
+    sp0, cp0 = math.sin(view.p0), math.cos(view.p0)
+    for py in range(view.h):
+        for px in range(view.w):
+            for j in range(ss):
+                y = (view.cy - (py + (j + 0.5) / ss)) / view.r
+                for i in range(ss):
+                    x = (px + (i + 0.5) / ss - view.cx) / view.r
+                    r2 = x * x + y * y
+                    if r2 > 1:
+                        continue
+                    z = math.sqrt(1 - r2)
+                    sl = z * sp0 + y * cp0
+                    lat = math.asin(max(-1.0, min(1.0, sl)))
+                    lng = view.l0 + math.atan2(x, z * cp0 - y * sp0)
+                    lat_d = math.degrees(lat)
+                    lng_d = (math.degrees(lng) + 540) % 360 - 180
+                    r = min(MH - 1, int((90 - lat_d) / 180 * MH))
+                    c = int((lng_d + 180) / 360 * MW) % MW
+                    idx.append(py * view.w + px)
+                    sinp.append(sl)
+                    cosp.append(math.cos(lat))
+                    lam.append(lng)
+                    land.append(mask[r * MW + c])
+    out = (idx, sinp, cosp, lam, bytes(land))
+    _coverage_cache[key] = out
+    return out
+
+
+def sun_position(now_ms):
+    """(declination, longitude) of the point where the sun is overhead, in
+    radians. Accurate to well under a degree, plenty for shading."""
+    t = datetime.fromtimestamp(now_ms / 1000, tz=timezone.utc)
+    n = t.timetuple().tm_yday
+    dec = -23.44 * math.cos(2 * math.pi / 365 * (n + 10))
+    hours = t.hour + t.minute / 60 + t.second / 3600
+    return math.radians(dec), math.radians(-15 * (hours - 12))
+
+
+def draw_globe(cv, view, now_ms):
+    """Globe with day and night shading into the map area of the canvas."""
+    idx, sinp, cosp, lam, land = globe_samples(view)
+    dec, slon = sun_position(now_ms)
+    sd, cd = math.sin(dec), math.cos(dec)
+    landc = cfg_color("LandColor")
+    ocean = cfg_color("GlobeOceanColor")
+    night = cfg_num("GlobeNight", 0, 100) / 100
+    n2 = GLOBE_SS * GLOBE_SS
+    sums = {}
+    cos, tw = math.cos, GLOBE_TWILIGHT
+    for k in range(len(idx)):
+        e = sinp[k] * sd + cosp[k] * cd * cos(lam[k] - slon)
+        day = 1.0 if e >= tw else 0.0 if e <= -tw else (e + tw) / (2 * tw)
+        bright = night + (1 - night) * day
+        base = landc if land[k] else ocean
+        acc = sums.get(idx[k])
+        if acc is None:
+            acc = sums[idx[k]] = [0.0, 0.0, 0.0]
+        acc[0] += base[0] * bright
+        acc[1] += base[1] * bright
+        acc[2] += base[2] * bright
+    w = view.w
+    for i, (r, g, b) in sums.items():
+        cv.set(i % w, i // w, (int(r / n2), int(g / n2), int(b / n2)))   # edge fades to space
 
 
 _coverage_cache = {}
@@ -1240,16 +1373,19 @@ def draw_frame(st, W, H):
     ocean = cfg_color("OceanColor")
     landc = cfg_color("LandColor")
     ss2 = 9
-    cov = land_coverage(view)
-    for y in range(H):
-        row = cov[y]
-        for x in range(mw):
-            c = row[x]
-            if c:
-                k = 0.55 + 0.45 * c / ss2          # coastline pixels a bit dimmer
-                cv.set(x, y, tuple(int(o + (l - o) * k) for o, l in zip(ocean, landc)))
-            elif ocean != (0, 0, 0):
-                cv.set(x, y, ocean)
+    if view.name == "globe":
+        draw_globe(cv, view, st.get("now_ms", time.time() * 1000))
+    else:
+        cov = land_coverage(view)
+        for y in range(H):
+            row = cov[y]
+            for x in range(mw):
+                c = row[x]
+                if c:
+                    k = 0.55 + 0.45 * c / ss2          # coastline pixels a bit dimmer
+                    cv.set(x, y, tuple(int(o + (l - o) * k) for o, l in zip(ocean, landc)))
+                elif ocean != (0, 0, 0):
+                    cv.set(x, y, ocean)
     if view.name == "local" and cfg_bool("ShowBorders"):
         border = cfg_color("BorderColor")
         for x, y in border_pixels(view):
@@ -1267,7 +1403,9 @@ def draw_frame(st, W, H):
             cv.set(hx + dx, hy + dy, cfg_color("HomeColor"))
     santa = cfg_color("SantaColor")
     sx, sy = view.pixel(st["loc"]["lat"], st["loc"]["lng"])
-    if cfg_str("SantaMarker").lower() == "dot" or mw < 40 or H < 16:
+    if view.name == "globe" and not view.contains(st["loc"]["lat"], st["loc"]["lng"]):
+        pass                                     # on the far side of the globe
+    elif cfg_str("SantaMarker").lower() == "dot" or mw < 40 or H < 16:
         for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1), (-2, 0), (2, 0), (0, -2), (0, 2)):
             if 0 <= sx + dx < mw:
                 cv.set(sx + dx, sy + dy, santa)

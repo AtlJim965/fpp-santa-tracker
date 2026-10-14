@@ -103,7 +103,7 @@ function fppsantatracker_check($key, $value, $defaults, $info) {
     $default = (string)$defaults[$key];
     $choices = array(
         'DisplayMode' => array('map', 'text', 'both'),
-        'MapView' => array('auto', 'world', 'local'),
+        'MapView' => array('auto', 'world', 'local', 'globe'),
         'LocalZoom' => array('wide', 'medium', 'close'),
         'WorldShape' => array('fill', 'true'),
         'ZoomedText' => array('small', 'normal'),

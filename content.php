@@ -106,6 +106,7 @@ $fppsantatrackerBoot = array(
               <option value="auto">Zoom in when Santa is near</option>
               <option value="world">Always the whole world</option>
               <option value="local">Always zoomed in</option>
+              <option value="globe">Globe (zoom in when Santa is near)</option>
             </select></div>
           <div class="col-12 col-sm-6" id="sZoomWrap"><label class="form-label mb-1" for="sZoom">Zoomed-in area</label>
             <select class="form-select" data-key="LocalZoom" id="sZoom">
@@ -118,6 +119,8 @@ $fppsantatrackerBoot = array(
               <option value="fill">Fill the panel (leave out Antarctica)</option>
               <option value="true">True proportions</option>
             </select></div>
+          <div class="col-12 col-sm-6" id="sGlobeWrap"><label class="form-label mb-1" for="sNight">Globe night-side brightness (%)</label>
+            <input type="number" class="form-control" id="sNight" data-key="GlobeNight" min="0" max="100"></div>
           <div class="col-12 col-sm-6" id="sZTextWrap"><label class="form-label mb-1" for="sZText">Text beside the zoomed-in map</label>
             <select class="form-select" data-key="ZoomedText" id="sZText">
               <option value="small">Small (bigger map)</option>
@@ -127,6 +130,7 @@ $fppsantatrackerBoot = array(
         <div class="row g-2">
           <div class="col-6 col-sm-4" data-color="LandColor" data-label="Land"></div>
           <div class="col-6 col-sm-4" data-color="OceanColor" data-label="Ocean"></div>
+          <div class="col-6 col-sm-4" id="sGlobeOceanWrap" data-color="GlobeOceanColor" data-label="Globe ocean"></div>
           <div class="col-6 col-sm-4" data-color="HomeColor" data-label="My location"></div>
           <div class="col-6 col-sm-4" data-color="SantaColor" data-label="Santa's sleigh"></div>
           <div class="col-6 col-sm-4" data-color="TrailColor" data-label="Santa's trail"></div>
@@ -446,7 +450,9 @@ $fppsantatrackerBoot = array(
     $('#sLineColors').classList.toggle('d-none', mode !== 'lines');
     $('#sHomeStop').classList.toggle('d-none', !$('#sHome').checked);
     $('#sZoomWrap').classList.toggle('d-none', $('#sView').value === 'world');
-    $('#sShapeWrap').classList.toggle('d-none', $('#sView').value === 'local');
+    $('#sShapeWrap').classList.toggle('d-none', $('#sView').value === 'local' || $('#sView').value === 'globe');
+    $('#sGlobeWrap').classList.toggle('d-none', $('#sView').value !== 'globe');
+    $('#sGlobeOceanWrap').classList.toggle('d-none', $('#sView').value !== 'globe');
     $('#sZTextWrap').classList.toggle('d-none', $('#sView').value === 'world');
     $('#sBorderWrap').classList.toggle('d-none', $('#sView').value === 'world' || !$('#sBorders').checked);
     drawSwatches();
