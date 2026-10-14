@@ -97,8 +97,12 @@ DEFAULTS = {
     "SantaMarker": "sleigh",            # sleigh | dot
     "TrailColor": "#FFB400",
     "ShowTrail": "1",
-    "MapView": "auto",                  # auto | world | local
+    "MapView": "auto",                  # auto | globe
     "LocalZoom": "medium",              # wide | medium | close
+    "WorldShape": "fill",               # fill | true (world map)
+    "ZoomedText": "small",              # small | normal (panel text, zoomed map)
+    "GlobeOceanColor": "#002D78",       # globe: ocean (space around it is black)
+    "GlobeNight": "50",                 # globe: night-side brightness, percent
     "ShowBorders": "1",                 # state/country lines on the zoomed map
     "BorderColor": "#006428",
     # right-hand panel colors
@@ -110,7 +114,7 @@ DEFAULTS = {
     "CityColor": "#FFFFFF",
     "RegionColor": "#787878",           # state / country
     "EtaColor": "#FFFFFF",              # ETA 3 MIN
-    "DistanceColor": "#FF0000",         # 4,123 MI / CLOSE BY!
+    "DistanceColor": "#FF0000",         # 4,123 MI / CLOSE BY! / JUST LEFT
     "GiftsColor": "#00C83C",            # 6.8B GIFTS DELIVERED
     "CountdownTextColor": "#FFFFFF",    # SANTA BEGINS HIS JOURNEY IN ... DAYS
     "CountdownNumberColor": "#FF0000",  # 73
@@ -118,6 +122,7 @@ DEFAULTS = {
     "Greeting2Color": "#00C83C",        # HO HO HO! / CHRISTMAS!
     # wording
     "CountdownPhrase": "begins his journey",
+    "EtaMode": "home",                  # home (until he reaches my town) | next (next stop)
     "ShowDistance": "1",
     "ShowGifts": "1",
     # scrolling text mode
@@ -187,6 +192,15 @@ def ensure_data_dir():
 
 
 # ------------------------------------------------------------- settings
+def upgrade_settings(cfg):
+    """Settings from older versions: the 'Always the whole world' and
+    'Always zoomed in' map views were removed; they zoom in when Santa is
+    near now, like the default."""
+    if str(cfg.get("MapView", "")).lower() in ("world", "local"):
+        cfg["MapView"] = "auto"
+    return cfg
+
+
 def read_plugin_settings(path=CONFIG_FILE):
     """FPP plugin settings file: one `Name = "value"` per line."""
     out = {}
@@ -238,6 +252,7 @@ def load_settings(override_path=None):
             CFG.update({k: str(v) for k, v in extra.items() if k in DEFAULTS})
         except Exception as e:
             log(f"Couldn't read preview settings: {e}")
+    upgrade_settings(CFG)
     for key, fpp_key in (("Latitude", "Latitude"), ("Longitude", "Longitude"),
                          ("TimeZone", "TimeZone")):
         if not CFG.get(key, "").strip():
@@ -366,6 +381,23 @@ def mins_text(ms):
     return "1 min" if m == 1 else f"{m} min"
 
 
+def hours_text(ms):
+    """'6 hours 48 min' / '1 hour' / '48 min' for the scrolling text."""
+    h, m = divmod(max(1, round(ms / 60000)), 60)
+    if not h:
+        return f"{m} min"
+    out = f"{h} hour{'s' if h > 1 else ''}"
+    return f"{out} {m} min" if m else out
+
+
+def hours_short(ms):
+    """'6H 48M' / '6H' / '48 MIN' for the panel."""
+    h, m = divmod(max(1, round(ms / 60000)), 60)
+    if not h:
+        return f"{m} MIN"
+    return f"{h}H {m}M" if m else f"{h}H"
+
+
 # ------------------------------------------------------------- your town
 def add_home_stop(dests):
     """Insert your town as a stop right after the nearest real stop. Later
@@ -448,9 +480,44 @@ def santa_status(dests, now_ms):
                           gifts=prev.get("presentsDelivered", 0),
                           visited=[s["location"] for s in stops[1:i]])
                 break
+    st["now_ms"] = now_ms
     hlat, hlng = home_latlng()
+    home = next((d for d in stops if d.get("id") == "home_stop"), None)
+    if home and st["state"] in ("stop", "flying") and now_ms < home["arrival"]:
+        st["home_left_ms"] = int(home["arrival"] - now_ms)
+    # has he been to your town yet? (without the home stop: the real stop
+    # nearest to you)
+    near = home or (min(stops[1:-1], key=lambda d: miles_between(
+        hlat, hlng, d["location"]["lat"], d["location"]["lng"])) if len(stops) > 2 else None)
+    st["passed_home"] = bool(near) and now_ms >= near["departure"]
     st["miles"] = miles_between(hlat, hlng, st["loc"]["lat"], st["loc"]["lng"])
     return st
+
+
+def home_countdown(st):
+    """Show the time until Santa reaches your town (instead of the time to
+    his next stop)? Only while he hasn't reached it yet."""
+    return cfg_str("EtaMode").lower() != "next" and st.get("home_left_ms") is not None
+
+
+def panel_bottom(st):
+    """[(text, color role)] for the bottom of the NOW IN / FLYING TO panel,
+    most important first. A newline in the text forces a line break."""
+    d, state = st["dest"], st["state"]
+    at_home = state == "stop" and d.get("id") == "home_stop"
+    out = []
+    if home_countdown(st):
+        out.append((f"DEST IN\n{hours_short(st['home_left_ms'])}", "eta"))
+    elif state == "flying":
+        out.append((f"ETA {max(1, round(st['left_ms'] / 60000))} MIN", "eta"))
+    if at_home:
+        out.append(("HE'S HERE!", "greet1"))
+    elif cfg_bool("ShowDistance"):
+        close = "JUST LEFT" if st.get("passed_home") else "CLOSE BY!"
+        out.append((close if st["miles"] < 50 else f"{st['miles']:,.0f} MI", "distance"))
+    if state == "stop" and st["gifts"] and cfg_bool("ShowGifts"):
+        out.append((short_number(st["gifts"]) + " GIFTS DELIVERED", "gifts"))
+    return out
 
 
 def _heading(a, b):
@@ -496,13 +563,17 @@ def santa_message(st):
     if s == "stop":
         parts = [f"Santa is in {place(st['dest'])}"]
     elif s == "flying":
-        parts = [f"Santa is flying to {place(st['dest'])}",
-                 f"arriving in {mins_text(st['left_ms'])}"]
+        parts = [f"Santa is flying to {place(st['dest'])}"]
+        if not home_countdown(st) or st["dest"].get("id") == "home_stop":
+            parts.append(f"arriving in {mins_text(st['left_ms'])}")
     else:
         return "Santa is on his way!"
+    if home_countdown(st) and st["dest"].get("id") != "home_stop":
+        parts.append(f"he reaches {home_name()} in {hours_text(st['home_left_ms'])}")
     if cfg_bool("ShowDistance"):
         mi = st["miles"]
-        parts.append("he's almost here!" if mi < 50 else f"{mi:,.0f} mi from {home_name()}")
+        close = f"he just left {home_name()}" if st.get("passed_home") else "he's almost here!"
+        parts.append(close if mi < 50 else f"{mi:,.0f} mi from {home_name()}")
     if cfg_bool("ShowGifts") and st["gifts"]:
         parts.append(f"{st['gifts']:,} gifts delivered")
     return " - ".join(parts)
@@ -587,6 +658,7 @@ MASK_FILE = "landmask_v2_4096.bin.z"
 BORDER_FILE = "borders_v2.json"
 LOCAL_SPANS = {"wide": 90.0, "medium": 50.0, "close": 25.0}   # degrees across
 WORLD_TOP_LAT = 72.0
+WORLD_BOTTOM_LAT = -60.0     # Santa's route stays north of this
 
 
 def _download_ne(name):
@@ -733,12 +805,16 @@ def _merc(lat):
 class MapView:
     """Mercator view of `span` degrees of longitude across `w` pixels."""
 
-    def __init__(self, name, w, h, lon_center, span, lat_center=None, top_lat=None):
+    def __init__(self, name, w, h, lon_center, span, lat_center=None, top_lat=None,
+                 bottom_lat=None):
         self.name, self.w, self.h = name, w, h
         self.lonc, self.span = lon_center, span
-        self.k = w / math.radians(span)              # pixels per radian
+        self.k = w / math.radians(span)              # pixels per radian (vertical)
         if top_lat is not None:
             self.ytop = _merc(top_lat)
+            if bottom_lat is not None:
+                # stretch (or squeeze) vertically so top..bottom fills the height
+                self.k = h / (self.ytop - _merc(bottom_lat))
         else:
             self.ytop = _merc(lat_center) + (h / self.k) / 2
 
@@ -757,11 +833,18 @@ class MapView:
 
     def key(self):
         return (self.name, self.w, self.h, round(self.lonc, 4), round(self.span, 4),
-                round(self.ytop, 6))
+                round(self.ytop, 6), round(self.k, 6))
 
 
 def world_view(w, h):
-    return MapView("world", w, h, 0.0, 360.0, top_lat=WORLD_TOP_LAT)
+    """The whole world. 'fill' fits 72N..60S to the map's height, leaving out
+    the far south (Antarctica, the empty Southern Ocean) so the land Santa
+    visits gets the whole panel; shapes are stretched or squeezed vertically
+    to fit. 'true' keeps Mercator's proportions from 72N down."""
+    if cfg_str("WorldShape").lower() == "true":
+        return MapView("world", w, h, 0.0, 360.0, top_lat=WORLD_TOP_LAT)
+    return MapView("world", w, h, 0.0, 360.0, top_lat=WORLD_TOP_LAT,
+                   bottom_lat=WORLD_BOTTOM_LAT)
 
 
 def local_view(w, h):
@@ -771,17 +854,143 @@ def local_view(w, h):
 
 
 def pick_view(st, w, h):
-    """Map view for this frame. 'auto' zooms in around your town while Santa
-    is inside the zoomed area, and shows the whole world otherwise."""
+    """Map view for this frame: the zoomed-in map around your town while
+    Santa is inside it, otherwise the world map ('auto') or the globe."""
     mode = cfg_str("MapView").lower()
-    if mode == "world":
-        return world_view(w, h)
     local = local_view(w, h)
-    if mode == "local":
-        return local
     if st["state"] in ("stop", "flying") and local.contains(st["loc"]["lat"], st["loc"]["lng"]):
         return local
+    if mode == "globe":
+        return globe_view(st, w, h)
     return world_view(w, h)
+
+
+# ------------------------------------------------------------- the globe
+# 'Globe' map view: an orthographic globe tilted to show the northern
+# hemisphere, turned to follow Santa on Christmas Eve and slowly spinning
+# the rest of the time, with the night side shaded from the sun's position.
+GLOBE_TILT = 25.0            # latitude at the centre of the globe
+GLOBE_SPIN = 20.0            # degrees per minute while Santa is at the North Pole
+GLOBE_SS = 2                 # samples per pixel across (edge and coast smoothing)
+GLOBE_TWILIGHT = 0.06        # soft day/night edge (sine of the sun's elevation)
+
+
+class GlobeView:
+    """Orthographic globe centred on (GLOBE_TILT, lon_center), as large as
+    the map's height allows, centred in the map area."""
+
+    def __init__(self, w, h, lon_center):
+        self.name, self.w, self.h = "globe", w, h
+        # whole degrees, so the land lookup can be reused while Santa is near
+        self.lonc = (round(lon_center) + 180) % 360 - 180
+        self.r = min(w, h) / 2 - 1
+        self.cx, self.cy = w / 2, h / 2
+        self.p0, self.l0 = math.radians(GLOBE_TILT), math.radians(self.lonc)
+
+    def xy(self, lat, lng):
+        """(x, y, on the visible side)"""
+        p, dl = math.radians(lat), math.radians(lng) - self.l0
+        cosc = math.sin(self.p0) * math.sin(p) + math.cos(self.p0) * math.cos(p) * math.cos(dl)
+        x = math.cos(p) * math.sin(dl)
+        y = math.cos(self.p0) * math.sin(p) - math.sin(self.p0) * math.cos(p) * math.cos(dl)
+        return self.cx + x * self.r, self.cy - y * self.r, cosc >= 0
+
+    def contains(self, lat, lng):
+        x, y, front = self.xy(lat, lng)
+        return front and 0 <= x < self.w and 0 <= y < self.h
+
+    def pixel(self, lat, lng):
+        x, y, _ = self.xy(lat, lng)
+        return min(max(int(x), 0), self.w - 1), min(max(int(y), 0), self.h - 1)
+
+    def key(self):
+        return ("globe", self.w, self.h, self.lonc)
+
+
+def globe_view(st, w, h):
+    if st["state"] in ("stop", "flying"):
+        lon = st["loc"]["lng"]                    # follow Santa
+    else:
+        lon = (st.get("now_ms", time.time() * 1000) / 60000 * GLOBE_SPIN) % 360 - 180
+    return GlobeView(w, h, lon)
+
+
+def globe_samples(view):
+    """Per sample: (pixel index, sin lat, cos lat, longitude in radians, land)
+    for every sample on the globe; cached per view (the land lookup is the
+    slow part, the night shading is redone every frame)."""
+    key = ("globe-samples",) + view.key()
+    if key in _coverage_cache:
+        return _coverage_cache[key]
+    for k in [k for k in _coverage_cache if k[0] == "globe-samples"]:
+        del _coverage_cache[k]                    # keep one globe in memory
+    from array import array
+    mask, MW, MH = land_mask(), MASK_W, MASK_H
+    ss = GLOBE_SS
+    idx, sinp, cosp, lam, land = array("i"), array("f"), array("f"), array("f"), bytearray()
+    sp0, cp0 = math.sin(view.p0), math.cos(view.p0)
+    for py in range(view.h):
+        for px in range(view.w):
+            for j in range(ss):
+                y = (view.cy - (py + (j + 0.5) / ss)) / view.r
+                for i in range(ss):
+                    x = (px + (i + 0.5) / ss - view.cx) / view.r
+                    r2 = x * x + y * y
+                    if r2 > 1:
+                        continue
+                    z = math.sqrt(1 - r2)
+                    sl = z * sp0 + y * cp0
+                    lat = math.asin(max(-1.0, min(1.0, sl)))
+                    lng = view.l0 + math.atan2(x, z * cp0 - y * sp0)
+                    lat_d = math.degrees(lat)
+                    lng_d = (math.degrees(lng) + 540) % 360 - 180
+                    r = min(MH - 1, int((90 - lat_d) / 180 * MH))
+                    c = int((lng_d + 180) / 360 * MW) % MW
+                    idx.append(py * view.w + px)
+                    sinp.append(sl)
+                    cosp.append(math.cos(lat))
+                    lam.append(lng)
+                    land.append(mask[r * MW + c])
+    out = (idx, sinp, cosp, lam, bytes(land))
+    _coverage_cache[key] = out
+    return out
+
+
+def sun_position(now_ms):
+    """(declination, longitude) of the point where the sun is overhead, in
+    radians. Accurate to well under a degree, plenty for shading."""
+    t = datetime.fromtimestamp(now_ms / 1000, tz=timezone.utc)
+    n = t.timetuple().tm_yday
+    dec = -23.44 * math.cos(2 * math.pi / 365 * (n + 10))
+    hours = t.hour + t.minute / 60 + t.second / 3600
+    return math.radians(dec), math.radians(-15 * (hours - 12))
+
+
+def draw_globe(cv, view, now_ms):
+    """Globe with day and night shading into the map area of the canvas."""
+    idx, sinp, cosp, lam, land = globe_samples(view)
+    dec, slon = sun_position(now_ms)
+    sd, cd = math.sin(dec), math.cos(dec)
+    landc = cfg_color("LandColor")
+    ocean = cfg_color("GlobeOceanColor")
+    night = cfg_num("GlobeNight", 0, 100) / 100
+    n2 = GLOBE_SS * GLOBE_SS
+    sums = {}
+    cos, tw = math.cos, GLOBE_TWILIGHT
+    for k in range(len(idx)):
+        e = sinp[k] * sd + cosp[k] * cd * cos(lam[k] - slon)
+        day = 1.0 if e >= tw else 0.0 if e <= -tw else (e + tw) / (2 * tw)
+        bright = night + (1 - night) * day
+        base = landc if land[k] else ocean
+        acc = sums.get(idx[k])
+        if acc is None:
+            acc = sums[idx[k]] = [0.0, 0.0, 0.0]
+        acc[0] += base[0] * bright
+        acc[1] += base[1] * bright
+        acc[2] += base[2] * bright
+    w = view.w
+    for i, (r, g, b) in sums.items():
+        cv.set(i % w, i // w, (int(r / n2), int(g / n2), int(b / n2)))   # edge fades to space
 
 
 _coverage_cache = {}
@@ -931,6 +1140,38 @@ FONT5x7 = {
     "#": [".#.#.", ".#.#.", "#####", ".#.#.", "#####", ".#.#.", ".#.#."],
 }
 
+# Tiny 3x5 font for the narrow panel beside the zoomed-in map (same characters
+# as FONT5x7).
+FONT3x5 = {
+    "A": [".#.", "#.#", "###", "#.#", "#.#"], "B": ["##.", "#.#", "##.", "#.#", "##."],
+    "C": [".##", "#..", "#..", "#..", ".##"], "D": ["##.", "#.#", "#.#", "#.#", "##."],
+    "E": ["###", "#..", "##.", "#..", "###"], "F": ["###", "#..", "##.", "#..", "#.."],
+    "G": [".##", "#..", "#.#", "#.#", ".##"], "H": ["#.#", "#.#", "###", "#.#", "#.#"],
+    "I": ["###", ".#.", ".#.", ".#.", "###"], "J": ["..#", "..#", "..#", "#.#", ".#."],
+    "K": ["#.#", "#.#", "##.", "#.#", "#.#"], "L": ["#..", "#..", "#..", "#..", "###"],
+    "M": ["#.#", "###", "#.#", "#.#", "#.#"], "N": ["##.", "#.#", "#.#", "#.#", "#.#"],
+    "O": [".#.", "#.#", "#.#", "#.#", ".#."], "P": ["##.", "#.#", "##.", "#..", "#.."],
+    "Q": [".#.", "#.#", "#.#", "##.", ".##"], "R": ["##.", "#.#", "##.", "#.#", "#.#"],
+    "S": [".##", "#..", ".#.", "..#", "##."], "T": ["###", ".#.", ".#.", ".#.", ".#."],
+    "U": ["#.#", "#.#", "#.#", "#.#", "###"], "V": ["#.#", "#.#", "#.#", "#.#", ".#."],
+    "W": ["#.#", "#.#", "#.#", "###", "#.#"], "X": ["#.#", "#.#", ".#.", "#.#", "#.#"],
+    "Y": ["#.#", "#.#", ".#.", ".#.", ".#."], "Z": ["###", "..#", ".#.", "#..", "###"],
+    "0": ["###", "#.#", "#.#", "#.#", "###"], "1": [".#.", "##.", ".#.", ".#.", "###"],
+    "2": ["##.", "..#", ".#.", "#..", "###"], "3": ["##.", "..#", ".#.", "..#", "##."],
+    "4": ["#.#", "#.#", "###", "..#", "..#"], "5": ["###", "#..", "##.", "..#", "##."],
+    "6": [".##", "#..", "###", "#.#", "###"], "7": ["###", "..#", ".#.", ".#.", ".#."],
+    "8": ["###", "#.#", "###", "#.#", "###"], "9": ["###", "#.#", "###", "..#", "##."],
+    " ": ["..."] * 5,
+    ".": ["...", "...", "...", "...", ".#."], ",": ["...", "...", "...", ".#.", "#.."],
+    ":": ["...", ".#.", "...", ".#.", "..."], "!": [".#.", ".#.", ".#.", "...", ".#."],
+    "?": ["##.", "..#", ".#.", "...", ".#."], "'": [".#.", ".#.", "...", "...", "..."],
+    "-": ["...", "...", "###", "...", "..."], "/": ["..#", "..#", ".#.", "#..", "#.."],
+    "(": ["..#", ".#.", ".#.", ".#.", "..#"], ")": ["#..", ".#.", ".#.", ".#.", "#.."],
+    "&": [".#.", "#.#", ".#.", "#.#", ".##"], "#": ["#.#", "###", "#.#", "###", "#.#"],
+}
+SMALL_COLS = 9                       # characters per line in the small panel
+SMALL_PANEL_W = SMALL_COLS * 4 - 1   # 3-pixel letters, 1-pixel gaps
+
 
 def font_text(s):
     """Upper-case, strip accents (Sao Paulo), drop characters we can't draw."""
@@ -944,6 +1185,10 @@ def wrap(s, width, hard=None):
     hard = max(hard or width, width)
     lines, cur = [], ""
     for word in font_text(s).split():
+        if len(word) > width and word[-1] in ",;" and len(word) - 1 <= hard:
+            # a word this long gets a line to itself, so its comma would end
+            # the line: drop it rather than split it off ("WISCONSIN" / ", USA")
+            word = word[:-1]
         while len(word) > hard:
             if cur:
                 lines.append(cur)
@@ -1027,11 +1272,12 @@ class Canvas:
         if 0 <= x < self.w and 0 <= y < self.h:
             self.px[y][x] = c
 
-    def text(self, x, y, s, c, scale=1, step=6):
+    def text(self, x, y, s, c, scale=1, step=6, font=None):
+        font = font or FONT5x7
         for ch in font_text(s):
             col = c(ch) if callable(c) else c
             if col is not None:
-                for gy, row in enumerate(FONT5x7[ch]):
+                for gy, row in enumerate(font[ch]):
                     for gx, bit in enumerate(row):
                         if bit == "#":
                             for dy in range(scale):
@@ -1122,19 +1368,30 @@ def draw_frame(st, W, H):
     mw = map_width(W, H)
     cv = Canvas(W, H)
     view = pick_view(st, mw, H)
+    small = False
+    if (view.name == "local" and st["state"] in ("stop", "flying")
+            and cfg_str("ZoomedText").lower() != "normal" and cfg_num("MapWidth", 0, 4096) <= 0):
+        # zoomed in: tiny text in a narrower panel, so the map gets wider
+        smw = W - 2 - SMALL_PANEL_W - int(cfg_num("PanelRightMargin", 0, 40))
+        if smw > mw:
+            mw, small = smw, True
+            view = local_view(mw, H)
     ocean = cfg_color("OceanColor")
     landc = cfg_color("LandColor")
     ss2 = 9
-    cov = land_coverage(view)
-    for y in range(H):
-        row = cov[y]
-        for x in range(mw):
-            c = row[x]
-            if c:
-                k = 0.55 + 0.45 * c / ss2          # coastline pixels a bit dimmer
-                cv.set(x, y, tuple(int(o + (l - o) * k) for o, l in zip(ocean, landc)))
-            elif ocean != (0, 0, 0):
-                cv.set(x, y, ocean)
+    if view.name == "globe":
+        draw_globe(cv, view, st.get("now_ms", time.time() * 1000))
+    else:
+        cov = land_coverage(view)
+        for y in range(H):
+            row = cov[y]
+            for x in range(mw):
+                c = row[x]
+                if c:
+                    k = 0.55 + 0.45 * c / ss2          # coastline pixels a bit dimmer
+                    cv.set(x, y, tuple(int(o + (l - o) * k) for o, l in zip(ocean, landc)))
+                elif ocean != (0, 0, 0):
+                    cv.set(x, y, ocean)
     if view.name == "local" and cfg_bool("ShowBorders"):
         border = cfg_color("BorderColor")
         for x, y in border_pixels(view):
@@ -1152,7 +1409,9 @@ def draw_frame(st, W, H):
             cv.set(hx + dx, hy + dy, cfg_color("HomeColor"))
     santa = cfg_color("SantaColor")
     sx, sy = view.pixel(st["loc"]["lat"], st["loc"]["lng"])
-    if cfg_str("SantaMarker").lower() == "dot" or mw < 40 or H < 16:
+    if view.name == "globe" and not view.contains(st["loc"]["lat"], st["loc"]["lng"]):
+        pass                                     # on the far side of the globe
+    elif cfg_str("SantaMarker").lower() == "dot" or mw < 40 or H < 16:
         for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1), (-2, 0), (2, 0), (0, -2), (0, 2)):
             if 0 <= sx + dx < mw:
                 cv.set(sx + dx, sy + dy, santa)
@@ -1162,7 +1421,7 @@ def draw_frame(st, W, H):
 
     px0 = mw + 2
     pw = W - px0 - int(cfg_num("PanelRightMargin", 0, 40))
-    if pw < 30:
+    if pw < (SMALL_PANEL_W if small else 30):
         return cv
     ink = Ink()
     cols = max(1, (pw + 1) // 6)
@@ -1209,6 +1468,8 @@ def draw_frame(st, W, H):
         if st["gifts"] and cfg_bool("ShowGifts") and H >= 63:
             cv.text_center(px0, pw, 47, short_number(st["gifts"]) + " GIFTS", ink("gifts"))
             cv.text_center(px0, pw, 56, "DELIVERED", ink("gifts"))
+    elif state in ("stop", "flying") and small:
+        draw_small_panel(cv, st, px0, pw, H, ink)
     elif state in ("stop", "flying"):
         d = st["dest"]
         y = 1
@@ -1226,24 +1487,58 @@ def draw_frame(st, W, H):
         for ln in region[:room]:
             cv.fit_text(px0, y, ln, ink("region"), pw)
             y += 9
-        bottom = []
-        if state == "flying":
-            bottom.append((f"ETA {max(1, round(st['left_ms'] / 60000))} MIN", "eta"))
-        if state == "stop" and d.get("id") == "home_stop":
-            bottom.append(("HE'S HERE!", "greet1"))
-        elif cfg_bool("ShowDistance"):
-            bottom.append(("CLOSE BY!" if st["miles"] < 50 else f"{st['miles']:,.0f} MI",
-                           "distance"))
-        if state == "stop" and st["gifts"] and cfg_bool("ShowGifts"):
-            bottom.append((short_number(st["gifts"]) + " GIFTS", "gifts"))
-            bottom.append(("DELIVERED", "gifts"))
-        yb = H - 9 * len(bottom)
-        for txt, role in bottom:
+        rows = []
+        for txt, role in panel_bottom(st):   # whole items only, while they fit
+            lines = [(ln, role) for part in txt.split("\n") for ln in wrap(part, hard)]
+            if y + 2 + 9 * (len(rows) + len(lines)) - 2 > H:
+                break
+            rows += lines
+        yb = H - 9 * len(rows)
+        for txt, role in rows:
             cv.fit_text(px0, yb, txt, ink(role), pw)
             yb += 9
     else:
         cv.text_center(px0, pw, H // 2 - 4, "SANTA", ink("city"))
     return cv
+
+
+def draw_small_panel(cv, st, x, pw, H, ink):
+    """'NOW IN' / 'FLYING TO' panel in the tiny 3x5 font (beside the zoomed-in
+    map). Same lines as the normal panel, wrapped to SMALL_COLS characters."""
+    cols = max(1, (pw + 1) // 4)
+
+    def line(y, s, role):
+        cv.text(x, y, s, ink(role), step=4, font=FONT3x5)
+
+    d = st["dest"]
+    state = st["state"]
+    y = 1
+    for ln in wrap("NOW IN:" if state == "stop" else "FLYING TO:", cols):
+        line(y, ln, "heading")
+        y += 7
+    y += 3
+    city = wrap(d.get("city", ""), cols)[:3]
+    for ln in city:
+        line(y, ln, "city")
+        y += 7
+    region = d.get("region", "")
+    if region and region != d.get("city"):
+        lines = wrap(region, cols)
+        if len(lines) > 2 and "," in region:
+            lines = wrap(region.rsplit(",", 1)[1], cols)   # "..., Japan"
+        for ln in lines[:2]:
+            line(y, ln, "region")
+            y += 7
+    rows = []
+    for txt, role in panel_bottom(st):                 # whole items only, while they fit
+        lines = [(ln, role) for part in txt.split("\n") for ln in wrap(part, cols)]
+        if y + 3 + 7 * (len(rows) + len(lines)) - 2 > H:
+            break
+        rows += lines
+    yb = H - 7 * len(rows)
+    for ln, role in rows:
+        line(yb, ln, role)
+        yb += 7
 
 
 def render(st):
@@ -1626,7 +1921,7 @@ def main():
     load_settings(a.settings)
 
     if a.settings_json:
-        saved = read_plugin_settings()
+        saved = upgrade_settings(read_plugin_settings())
         print(json.dumps({"ok": True, "defaults": DEFAULTS,
                           "settings": {k: saved.get(k, v) for k, v in DEFAULTS.items()},
                           "palettes": PALETTES,

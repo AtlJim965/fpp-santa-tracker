@@ -79,6 +79,12 @@ FPPD restarts, so it asks for a restart. Your settings file is kept, so a
 reinstall remembers them; delete `config/plugin.fpp-santa-tracker` to remove
 them too.
 
+## More
+
+* [DOCUMENTATION.md](DOCUMENTATION.md): every setting, the commands, how the map
+  works, and troubleshooting
+* [CHANGELOG.md](CHANGELOG.md): what changed and when
+
 ## License
 
 GPL v2. See `LICENSE`.

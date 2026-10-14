@@ -104,8 +104,7 @@ $fppsantatrackerBoot = array(
           <div class="col-12 col-sm-6"><label class="form-label mb-1" for="sView">Map view</label>
             <select class="form-select" data-key="MapView" id="sView">
               <option value="auto">Zoom in when Santa is near</option>
-              <option value="world">Always the whole world</option>
-              <option value="local">Always zoomed in</option>
+              <option value="globe">Globe (zoom in when Santa is near)</option>
             </select></div>
           <div class="col-12 col-sm-6" id="sZoomWrap"><label class="form-label mb-1" for="sZoom">Zoomed-in area</label>
             <select class="form-select" data-key="LocalZoom" id="sZoom">
@@ -113,10 +112,23 @@ $fppsantatrackerBoot = array(
               <option value="medium">Medium (about 2,500 mi)</option>
               <option value="close">Close (about 1,200 mi)</option>
             </select></div>
+          <div class="col-12 col-sm-6" id="sShapeWrap"><label class="form-label mb-1" for="sShape">World map shape</label>
+            <select class="form-select" data-key="WorldShape" id="sShape">
+              <option value="fill">Fill the panel (leave out Antarctica)</option>
+              <option value="true">True proportions</option>
+            </select></div>
+          <div class="col-12 col-sm-6" id="sGlobeWrap"><label class="form-label mb-1" for="sNight">Globe night-side brightness (%)</label>
+            <input type="number" class="form-control" id="sNight" data-key="GlobeNight" min="0" max="100"></div>
+          <div class="col-12 col-sm-6" id="sZTextWrap"><label class="form-label mb-1" for="sZText">Text beside the zoomed-in map</label>
+            <select class="form-select" data-key="ZoomedText" id="sZText">
+              <option value="small">Small (bigger map)</option>
+              <option value="normal">Normal</option>
+            </select></div>
         </div>
         <div class="row g-2">
           <div class="col-6 col-sm-4" data-color="LandColor" data-label="Land"></div>
           <div class="col-6 col-sm-4" data-color="OceanColor" data-label="Ocean"></div>
+          <div class="col-6 col-sm-4" id="sGlobeOceanWrap" data-color="GlobeOceanColor" data-label="Globe ocean"></div>
           <div class="col-6 col-sm-4" data-color="HomeColor" data-label="My location"></div>
           <div class="col-6 col-sm-4" data-color="SantaColor" data-label="Santa's sleigh"></div>
           <div class="col-6 col-sm-4" data-color="TrailColor" data-label="Santa's trail"></div>
@@ -158,7 +170,7 @@ $fppsantatrackerBoot = array(
           <div class="col-6 col-sm-4" data-color="CityColor" data-label="City name"></div>
           <div class="col-6 col-sm-4" data-color="RegionColor" data-label="State / country"></div>
           <div class="col-6 col-sm-4" data-color="EtaColor" data-label="&ldquo;ETA 3 MIN&rdquo;"></div>
-          <div class="col-6 col-sm-4" data-color="DistanceColor" data-label="Distance / &ldquo;CLOSE BY!&rdquo;"></div>
+          <div class="col-6 col-sm-4" data-color="DistanceColor" data-label="Distance / &ldquo;CLOSE BY!&rdquo; / &ldquo;JUST LEFT&rdquo;"></div>
           <div class="col-6 col-sm-4" data-color="GiftsColor" data-label="Gifts delivered"></div>
           <div class="col-6 col-sm-4" data-color="CountdownTextColor" data-label="Countdown words"></div>
           <div class="col-6 col-sm-4" data-color="CountdownNumberColor" data-label="Countdown number"></div>
@@ -175,6 +187,11 @@ $fppsantatrackerBoot = array(
           <input type="text" class="form-control" style="min-width: 12rem" id="sPhrase" data-key="CountdownPhrase" maxlength="60" placeholder="begins his journey">
           <span class="input-group-text">in <span id="sDaysWord" class="mx-1">&hellip;</span> days</span>
         </div>
+        <div class="mt-3"><label class="form-label mb-1" for="sEta">ETA shows</label>
+          <select class="form-select" data-key="EtaMode" id="sEta">
+            <option value="home">Time until Santa reaches my town</option>
+            <option value="next">Time to his next stop</option>
+          </select></div>
         <div class="form-check mt-3">
           <input class="form-check-input" type="checkbox" id="sDist" data-key="ShowDistance">
           <label class="form-check-label" for="sDist">Show distance from my town</label>
@@ -430,8 +447,10 @@ $fppsantatrackerBoot = array(
     $('#sSingleWrap').classList.toggle('d-none', mode !== 'single');
     $('#sLineColors').classList.toggle('d-none', mode !== 'lines');
     $('#sHomeStop').classList.toggle('d-none', !$('#sHome').checked);
-    $('#sZoomWrap').classList.toggle('d-none', $('#sView').value === 'world');
-    $('#sBorderWrap').classList.toggle('d-none', $('#sView').value === 'world' || !$('#sBorders').checked);
+    $('#sShapeWrap').classList.toggle('d-none', $('#sView').value === 'globe');
+    $('#sGlobeWrap').classList.toggle('d-none', $('#sView').value !== 'globe');
+    $('#sGlobeOceanWrap').classList.toggle('d-none', $('#sView').value !== 'globe');
+    $('#sBorderWrap').classList.toggle('d-none', !$('#sBorders').checked);
     drawSwatches();
   }
 
