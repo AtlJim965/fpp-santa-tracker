@@ -99,6 +99,8 @@ DEFAULTS = {
     "ShowTrail": "1",
     "MapView": "auto",                  # auto | world | local
     "LocalZoom": "medium",              # wide | medium | close
+    "WorldShape": "fill",               # fill | true (world map)
+    "ZoomedText": "small",              # small | normal (panel text, zoomed map)
     "ShowBorders": "1",                 # state/country lines on the zoomed map
     "BorderColor": "#006428",
     # right-hand panel colors
@@ -110,7 +112,7 @@ DEFAULTS = {
     "CityColor": "#FFFFFF",
     "RegionColor": "#787878",           # state / country
     "EtaColor": "#FFFFFF",              # ETA 3 MIN
-    "DistanceColor": "#FF0000",         # 4,123 MI / CLOSE BY!
+    "DistanceColor": "#FF0000",         # 4,123 MI / CLOSE BY! / JUST LEFT
     "GiftsColor": "#00C83C",            # 6.8B GIFTS DELIVERED
     "CountdownTextColor": "#FFFFFF",    # SANTA BEGINS HIS JOURNEY IN ... DAYS
     "CountdownNumberColor": "#FF0000",  # 73
@@ -118,6 +120,7 @@ DEFAULTS = {
     "Greeting2Color": "#00C83C",        # HO HO HO! / CHRISTMAS!
     # wording
     "CountdownPhrase": "begins his journey",
+    "EtaMode": "home",                  # home (until he reaches my town) | next (next stop)
     "ShowDistance": "1",
     "ShowGifts": "1",
     # scrolling text mode
@@ -366,6 +369,23 @@ def mins_text(ms):
     return "1 min" if m == 1 else f"{m} min"
 
 
+def hours_text(ms):
+    """'6 hours 48 min' / '1 hour' / '48 min' for the scrolling text."""
+    h, m = divmod(max(1, round(ms / 60000)), 60)
+    if not h:
+        return f"{m} min"
+    out = f"{h} hour{'s' if h > 1 else ''}"
+    return f"{out} {m} min" if m else out
+
+
+def hours_short(ms):
+    """'6H 48M' / '6H' / '48 MIN' for the panel."""
+    h, m = divmod(max(1, round(ms / 60000)), 60)
+    if not h:
+        return f"{m} MIN"
+    return f"{h}H {m}M" if m else f"{h}H"
+
+
 # ------------------------------------------------------------- your town
 def add_home_stop(dests):
     """Insert your town as a stop right after the nearest real stop. Later
@@ -449,8 +469,42 @@ def santa_status(dests, now_ms):
                           visited=[s["location"] for s in stops[1:i]])
                 break
     hlat, hlng = home_latlng()
+    home = next((d for d in stops if d.get("id") == "home_stop"), None)
+    if home and st["state"] in ("stop", "flying") and now_ms < home["arrival"]:
+        st["home_left_ms"] = int(home["arrival"] - now_ms)
+    # has he been to your town yet? (without the home stop: the real stop
+    # nearest to you)
+    near = home or (min(stops[1:-1], key=lambda d: miles_between(
+        hlat, hlng, d["location"]["lat"], d["location"]["lng"])) if len(stops) > 2 else None)
+    st["passed_home"] = bool(near) and now_ms >= near["departure"]
     st["miles"] = miles_between(hlat, hlng, st["loc"]["lat"], st["loc"]["lng"])
     return st
+
+
+def home_countdown(st):
+    """Show the time until Santa reaches your town (instead of the time to
+    his next stop)? Only while he hasn't reached it yet."""
+    return cfg_str("EtaMode").lower() != "next" and st.get("home_left_ms") is not None
+
+
+def panel_bottom(st):
+    """[(text, color role)] for the bottom of the NOW IN / FLYING TO panel,
+    most important first. A newline in the text forces a line break."""
+    d, state = st["dest"], st["state"]
+    at_home = state == "stop" and d.get("id") == "home_stop"
+    out = []
+    if home_countdown(st):
+        out.append((f"DEST IN\n{hours_short(st['home_left_ms'])}", "eta"))
+    elif state == "flying":
+        out.append((f"ETA {max(1, round(st['left_ms'] / 60000))} MIN", "eta"))
+    if at_home:
+        out.append(("HE'S HERE!", "greet1"))
+    elif cfg_bool("ShowDistance"):
+        close = "JUST LEFT" if st.get("passed_home") else "CLOSE BY!"
+        out.append((close if st["miles"] < 50 else f"{st['miles']:,.0f} MI", "distance"))
+    if state == "stop" and st["gifts"] and cfg_bool("ShowGifts"):
+        out.append((short_number(st["gifts"]) + " GIFTS DELIVERED", "gifts"))
+    return out
 
 
 def _heading(a, b):
@@ -496,13 +550,17 @@ def santa_message(st):
     if s == "stop":
         parts = [f"Santa is in {place(st['dest'])}"]
     elif s == "flying":
-        parts = [f"Santa is flying to {place(st['dest'])}",
-                 f"arriving in {mins_text(st['left_ms'])}"]
+        parts = [f"Santa is flying to {place(st['dest'])}"]
+        if not home_countdown(st) or st["dest"].get("id") == "home_stop":
+            parts.append(f"arriving in {mins_text(st['left_ms'])}")
     else:
         return "Santa is on his way!"
+    if home_countdown(st) and st["dest"].get("id") != "home_stop":
+        parts.append(f"he reaches {home_name()} in {hours_text(st['home_left_ms'])}")
     if cfg_bool("ShowDistance"):
         mi = st["miles"]
-        parts.append("he's almost here!" if mi < 50 else f"{mi:,.0f} mi from {home_name()}")
+        close = f"he just left {home_name()}" if st.get("passed_home") else "he's almost here!"
+        parts.append(close if mi < 50 else f"{mi:,.0f} mi from {home_name()}")
     if cfg_bool("ShowGifts") and st["gifts"]:
         parts.append(f"{st['gifts']:,} gifts delivered")
     return " - ".join(parts)
@@ -587,6 +645,7 @@ MASK_FILE = "landmask_v2_4096.bin.z"
 BORDER_FILE = "borders_v2.json"
 LOCAL_SPANS = {"wide": 90.0, "medium": 50.0, "close": 25.0}   # degrees across
 WORLD_TOP_LAT = 72.0
+WORLD_BOTTOM_LAT = -60.0     # Santa's route stays north of this
 
 
 def _download_ne(name):
@@ -733,12 +792,16 @@ def _merc(lat):
 class MapView:
     """Mercator view of `span` degrees of longitude across `w` pixels."""
 
-    def __init__(self, name, w, h, lon_center, span, lat_center=None, top_lat=None):
+    def __init__(self, name, w, h, lon_center, span, lat_center=None, top_lat=None,
+                 bottom_lat=None):
         self.name, self.w, self.h = name, w, h
         self.lonc, self.span = lon_center, span
-        self.k = w / math.radians(span)              # pixels per radian
+        self.k = w / math.radians(span)              # pixels per radian (vertical)
         if top_lat is not None:
             self.ytop = _merc(top_lat)
+            if bottom_lat is not None:
+                # stretch (or squeeze) vertically so top..bottom fills the height
+                self.k = h / (self.ytop - _merc(bottom_lat))
         else:
             self.ytop = _merc(lat_center) + (h / self.k) / 2
 
@@ -757,11 +820,18 @@ class MapView:
 
     def key(self):
         return (self.name, self.w, self.h, round(self.lonc, 4), round(self.span, 4),
-                round(self.ytop, 6))
+                round(self.ytop, 6), round(self.k, 6))
 
 
 def world_view(w, h):
-    return MapView("world", w, h, 0.0, 360.0, top_lat=WORLD_TOP_LAT)
+    """The whole world. 'fill' fits 72N..60S to the map's height, leaving out
+    the far south (Antarctica, the empty Southern Ocean) so the land Santa
+    visits gets the whole panel; shapes are stretched or squeezed vertically
+    to fit. 'true' keeps Mercator's proportions from 72N down."""
+    if cfg_str("WorldShape").lower() == "true":
+        return MapView("world", w, h, 0.0, 360.0, top_lat=WORLD_TOP_LAT)
+    return MapView("world", w, h, 0.0, 360.0, top_lat=WORLD_TOP_LAT,
+                   bottom_lat=WORLD_BOTTOM_LAT)
 
 
 def local_view(w, h):
@@ -931,6 +1001,38 @@ FONT5x7 = {
     "#": [".#.#.", ".#.#.", "#####", ".#.#.", "#####", ".#.#.", ".#.#."],
 }
 
+# Tiny 3x5 font for the narrow panel beside the zoomed-in map (same characters
+# as FONT5x7).
+FONT3x5 = {
+    "A": [".#.", "#.#", "###", "#.#", "#.#"], "B": ["##.", "#.#", "##.", "#.#", "##."],
+    "C": [".##", "#..", "#..", "#..", ".##"], "D": ["##.", "#.#", "#.#", "#.#", "##."],
+    "E": ["###", "#..", "##.", "#..", "###"], "F": ["###", "#..", "##.", "#..", "#.."],
+    "G": [".##", "#..", "#.#", "#.#", ".##"], "H": ["#.#", "#.#", "###", "#.#", "#.#"],
+    "I": ["###", ".#.", ".#.", ".#.", "###"], "J": ["..#", "..#", "..#", "#.#", ".#."],
+    "K": ["#.#", "#.#", "##.", "#.#", "#.#"], "L": ["#..", "#..", "#..", "#..", "###"],
+    "M": ["#.#", "###", "#.#", "#.#", "#.#"], "N": ["##.", "#.#", "#.#", "#.#", "#.#"],
+    "O": [".#.", "#.#", "#.#", "#.#", ".#."], "P": ["##.", "#.#", "##.", "#..", "#.."],
+    "Q": [".#.", "#.#", "#.#", "##.", ".##"], "R": ["##.", "#.#", "##.", "#.#", "#.#"],
+    "S": [".##", "#..", ".#.", "..#", "##."], "T": ["###", ".#.", ".#.", ".#.", ".#."],
+    "U": ["#.#", "#.#", "#.#", "#.#", "###"], "V": ["#.#", "#.#", "#.#", "#.#", ".#."],
+    "W": ["#.#", "#.#", "#.#", "###", "#.#"], "X": ["#.#", "#.#", ".#.", "#.#", "#.#"],
+    "Y": ["#.#", "#.#", ".#.", ".#.", ".#."], "Z": ["###", "..#", ".#.", "#..", "###"],
+    "0": ["###", "#.#", "#.#", "#.#", "###"], "1": [".#.", "##.", ".#.", ".#.", "###"],
+    "2": ["##.", "..#", ".#.", "#..", "###"], "3": ["##.", "..#", ".#.", "..#", "##."],
+    "4": ["#.#", "#.#", "###", "..#", "..#"], "5": ["###", "#..", "##.", "..#", "##."],
+    "6": [".##", "#..", "###", "#.#", "###"], "7": ["###", "..#", ".#.", ".#.", ".#."],
+    "8": ["###", "#.#", "###", "#.#", "###"], "9": ["###", "#.#", "###", "..#", "##."],
+    " ": ["..."] * 5,
+    ".": ["...", "...", "...", "...", ".#."], ",": ["...", "...", "...", ".#.", "#.."],
+    ":": ["...", ".#.", "...", ".#.", "..."], "!": [".#.", ".#.", ".#.", "...", ".#."],
+    "?": ["##.", "..#", ".#.", "...", ".#."], "'": [".#.", ".#.", "...", "...", "..."],
+    "-": ["...", "...", "###", "...", "..."], "/": ["..#", "..#", ".#.", "#..", "#.."],
+    "(": ["..#", ".#.", ".#.", ".#.", "..#"], ")": ["#..", ".#.", ".#.", ".#.", "#.."],
+    "&": [".#.", "#.#", ".#.", "#.#", ".##"], "#": ["#.#", "###", "#.#", "###", "#.#"],
+}
+SMALL_COLS = 9                       # characters per line in the small panel
+SMALL_PANEL_W = SMALL_COLS * 4 - 1   # 3-pixel letters, 1-pixel gaps
+
 
 def font_text(s):
     """Upper-case, strip accents (Sao Paulo), drop characters we can't draw."""
@@ -944,6 +1046,10 @@ def wrap(s, width, hard=None):
     hard = max(hard or width, width)
     lines, cur = [], ""
     for word in font_text(s).split():
+        if len(word) > width and word[-1] in ",;" and len(word) - 1 <= hard:
+            # a word this long gets a line to itself, so its comma would end
+            # the line: drop it rather than split it off ("WISCONSIN" / ", USA")
+            word = word[:-1]
         while len(word) > hard:
             if cur:
                 lines.append(cur)
@@ -1027,11 +1133,12 @@ class Canvas:
         if 0 <= x < self.w and 0 <= y < self.h:
             self.px[y][x] = c
 
-    def text(self, x, y, s, c, scale=1, step=6):
+    def text(self, x, y, s, c, scale=1, step=6, font=None):
+        font = font or FONT5x7
         for ch in font_text(s):
             col = c(ch) if callable(c) else c
             if col is not None:
-                for gy, row in enumerate(FONT5x7[ch]):
+                for gy, row in enumerate(font[ch]):
                     for gx, bit in enumerate(row):
                         if bit == "#":
                             for dy in range(scale):
@@ -1122,6 +1229,14 @@ def draw_frame(st, W, H):
     mw = map_width(W, H)
     cv = Canvas(W, H)
     view = pick_view(st, mw, H)
+    small = False
+    if (view.name == "local" and st["state"] in ("stop", "flying")
+            and cfg_str("ZoomedText").lower() != "normal" and cfg_num("MapWidth", 0, 4096) <= 0):
+        # zoomed in: tiny text in a narrower panel, so the map gets wider
+        smw = W - 2 - SMALL_PANEL_W - int(cfg_num("PanelRightMargin", 0, 40))
+        if smw > mw:
+            mw, small = smw, True
+            view = local_view(mw, H)
     ocean = cfg_color("OceanColor")
     landc = cfg_color("LandColor")
     ss2 = 9
@@ -1162,7 +1277,7 @@ def draw_frame(st, W, H):
 
     px0 = mw + 2
     pw = W - px0 - int(cfg_num("PanelRightMargin", 0, 40))
-    if pw < 30:
+    if pw < (SMALL_PANEL_W if small else 30):
         return cv
     ink = Ink()
     cols = max(1, (pw + 1) // 6)
@@ -1209,6 +1324,8 @@ def draw_frame(st, W, H):
         if st["gifts"] and cfg_bool("ShowGifts") and H >= 63:
             cv.text_center(px0, pw, 47, short_number(st["gifts"]) + " GIFTS", ink("gifts"))
             cv.text_center(px0, pw, 56, "DELIVERED", ink("gifts"))
+    elif state in ("stop", "flying") and small:
+        draw_small_panel(cv, st, px0, pw, H, ink)
     elif state in ("stop", "flying"):
         d = st["dest"]
         y = 1
@@ -1226,24 +1343,58 @@ def draw_frame(st, W, H):
         for ln in region[:room]:
             cv.fit_text(px0, y, ln, ink("region"), pw)
             y += 9
-        bottom = []
-        if state == "flying":
-            bottom.append((f"ETA {max(1, round(st['left_ms'] / 60000))} MIN", "eta"))
-        if state == "stop" and d.get("id") == "home_stop":
-            bottom.append(("HE'S HERE!", "greet1"))
-        elif cfg_bool("ShowDistance"):
-            bottom.append(("CLOSE BY!" if st["miles"] < 50 else f"{st['miles']:,.0f} MI",
-                           "distance"))
-        if state == "stop" and st["gifts"] and cfg_bool("ShowGifts"):
-            bottom.append((short_number(st["gifts"]) + " GIFTS", "gifts"))
-            bottom.append(("DELIVERED", "gifts"))
-        yb = H - 9 * len(bottom)
-        for txt, role in bottom:
+        rows = []
+        for txt, role in panel_bottom(st):   # whole items only, while they fit
+            lines = [(ln, role) for part in txt.split("\n") for ln in wrap(part, hard)]
+            if y + 2 + 9 * (len(rows) + len(lines)) - 2 > H:
+                break
+            rows += lines
+        yb = H - 9 * len(rows)
+        for txt, role in rows:
             cv.fit_text(px0, yb, txt, ink(role), pw)
             yb += 9
     else:
         cv.text_center(px0, pw, H // 2 - 4, "SANTA", ink("city"))
     return cv
+
+
+def draw_small_panel(cv, st, x, pw, H, ink):
+    """'NOW IN' / 'FLYING TO' panel in the tiny 3x5 font (beside the zoomed-in
+    map). Same lines as the normal panel, wrapped to SMALL_COLS characters."""
+    cols = max(1, (pw + 1) // 4)
+
+    def line(y, s, role):
+        cv.text(x, y, s, ink(role), step=4, font=FONT3x5)
+
+    d = st["dest"]
+    state = st["state"]
+    y = 1
+    for ln in wrap("NOW IN:" if state == "stop" else "FLYING TO:", cols):
+        line(y, ln, "heading")
+        y += 7
+    y += 3
+    city = wrap(d.get("city", ""), cols)[:3]
+    for ln in city:
+        line(y, ln, "city")
+        y += 7
+    region = d.get("region", "")
+    if region and region != d.get("city"):
+        lines = wrap(region, cols)
+        if len(lines) > 2 and "," in region:
+            lines = wrap(region.rsplit(",", 1)[1], cols)   # "..., Japan"
+        for ln in lines[:2]:
+            line(y, ln, "region")
+            y += 7
+    rows = []
+    for txt, role in panel_bottom(st):                 # whole items only, while they fit
+        lines = [(ln, role) for part in txt.split("\n") for ln in wrap(part, cols)]
+        if y + 3 + 7 * (len(rows) + len(lines)) - 2 > H:
+            break
+        rows += lines
+    yb = H - 7 * len(rows)
+    for ln, role in rows:
+        line(yb, ln, role)
+        yb += 7
 
 
 def render(st):

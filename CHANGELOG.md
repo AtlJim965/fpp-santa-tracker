@@ -11,8 +11,34 @@ heading when the change is released.
 
 ### Added
 
+* **World map shape** setting. **Fill the panel** (the new default) stops the
+  world map at 60°S and fills the panel's height, so Antarctica and the
+  empty Southern Ocean no longer take up the bottom third of tall panels.
+  **True proportions** keeps the previous map.
+* **Text beside the zoomed-in map** setting. **Small** (the new default)
+  uses a tiny 3x5-pixel font for the "NOW IN" / "FLYING TO" panel while the
+  map is zoomed in, so the map gets wider and long lines ("FLYING TO:",
+  "HE'S HERE!", "DELIVERED") are wrapped instead of cut off. **Normal**
+  keeps the previous panel.
+* **ETA shows** setting. **Time until Santa reaches my town** (the new
+  default) shows "DEST IN 6H 48M" on the panel, counting down all night to
+  his visit to your town, and "he reaches Your Town in 6 hours 48 min" in
+  the scrolling text. After his visit it goes back to the time to his next
+  stop. **Time to his next stop** keeps the previous "ETA n MIN".
+* After Santa's visit to your town, the distance line says "JUST LEFT"
+  instead of "CLOSE BY!" while he is still within 50 miles, and the
+  scrolling text says "he just left Your Town" instead of "he's almost
+  here!".
 * `DOCUMENTATION.md`: a full reference for the settings, commands, map,
   files and troubleshooting, and this change log
+
+### Changed
+
+* The bottom lines of the "NOW IN" / "FLYING TO" panel are wrapped instead
+  of cut off at the right edge, and on short panels whole lines are left
+  out (gifts first) instead of running off the bottom.
+* A word that only just fits a line no longer has its comma split onto the
+  next line ("WISCONSIN" / "USA" instead of "WISCONSIN" / ", USA").
 
 ## 2026-10-13
 

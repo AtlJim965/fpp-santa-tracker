@@ -30,7 +30,7 @@ in FPP. It can show:
   on the right: a countdown before Christmas Eve, then "NOW IN" / "FLYING TO",
   the distance from your town and the gifts delivered
 * **a scrolling text message**, such as "Santa is flying to Seville, Spain -
-  arriving in 3 min - 4,187 mi from Your Town"
+  he reaches Your Town in 6 hours 48 min - 4,187 mi from Your Town"
 * **the map, then the scrolling text**, one after the other
 
 Santa's route comes from Google's Santa Tracker. Your town can be added as
@@ -117,6 +117,8 @@ coordinates. For example, Arlington Heights, IL shows "Chicago, Illinois, USA
 | Show Santa as | `SantaMarker` | Sleigh and reindeer | Or **A dot**. Small maps (under 40x16) always use the dot. |
 | Map view | `MapView` | Zoom in when Santa is near | Or **Always the whole world** / **Always zoomed in** |
 | Zoomed-in area | `LocalZoom` | Medium (about 2,500 mi) | Wide (about 4,500 mi) or Close (about 1,200 mi) |
+| World map shape | `WorldShape` | Fill the panel | Or **True proportions**. See [How the map works](#how-the-map-works). |
+| Text beside the zoomed-in map | `ZoomedText` | Small (bigger map) | Or **Normal**. See [What the info panel shows](#what-the-info-panel-shows). |
 | Land | `LandColor` | `#00DC46` | |
 | Ocean | `OceanColor` | `#000000` | |
 | My location | `HomeColor` | `#FFFFFF` | The small + marking your town |
@@ -146,7 +148,7 @@ The per-line colors:
 | City name | `CityColor` | `#FFFFFF` |
 | State / country | `RegionColor` | `#787878` |
 | "ETA 3 MIN" | `EtaColor` | `#FFFFFF` |
-| Distance / "CLOSE BY!" | `DistanceColor` | `#FF0000` |
+| Distance / "CLOSE BY!" / "JUST LEFT" | `DistanceColor` | `#FF0000` |
 | Gifts delivered | `GiftsColor` | `#00C83C` |
 | Countdown words | `CountdownTextColor` | `#FFFFFF` |
 | Countdown number | `CountdownNumberColor` | `#FF0000` |
@@ -158,6 +160,7 @@ The per-line colors:
 | Setting | Key | Default | Notes |
 |---|---|---|---|
 | Countdown message | `CountdownPhrase` | begins his journey | Shown as "Santa ... in 72 days" |
+| ETA shows | `EtaMode` | Time until Santa reaches my town | Or **Time to his next stop**. See [What the info panel shows](#what-the-info-panel-shows). |
 | Show distance from my town | `ShowDistance` | on | |
 | Show gifts delivered | `ShowGifts` | on | |
 
@@ -231,7 +234,13 @@ automatically when FPP starts**.
 
 ## How the map works
 
-**Views.** The world view shows the whole world from 72°N southwards. The
+**Views.** The world view shows the whole world from 72°N southwards. With
+**World map shape: Fill the panel** (the default) it stops at 60°S, south of
+everywhere Santa visits, and fills the map's height, so Antarctica and the
+empty Southern Ocean don't take up the bottom of the panel. On a tall panel
+this stretches shapes vertically (about 1.5 times on a 384x256 panel); on a
+wide, short panel it changes little. **True proportions** keeps the shapes
+exact and shows as far south as the panel's height allows. The
 zoomed-in view is centred on your town and shows lakes and state and country
 borders. With **Zoom in when Santa is near**, the map switches to the zoomed
 view while Santa is inside that area and back to the world when he leaves.
@@ -254,12 +263,34 @@ coastline, with lakes such as the Great Lakes cut out.
 | When | Panel |
 |---|---|
 | Before Christmas Eve | "SANTA BEGINS HIS JOURNEY IN", the number of days, "HO HO HO!". Days are counted on the calendar in your time zone. On Christmas Eve it counts hours, then minutes, until takeoff. |
-| Flying | "FLYING TO:", the next city and its region, "ETA n MIN", the distance from your town |
-| At a stop | "NOW IN:", the city and region, the distance, the gifts delivered so far |
+| Flying | "FLYING TO:", the next city and its region, the time until he reaches your town ("DEST IN 6H 48M"), the distance from your town |
+| At a stop | "NOW IN:", the city and region, "DEST IN ..." (time until he reaches your town), the distance, the gifts delivered so far |
 | At your town | "NOW IN:" your town, "HE'S HERE!" |
 | Christmas morning | "SANTA IS HOME!", "MERRY CHRISTMAS!", the total gifts delivered |
 
-The distance shows "CLOSE BY!" when Santa is under 50 miles away.
+The distance shows "CLOSE BY!" when Santa is under 50 miles away, and
+"JUST LEFT" once he has been to your town (the scrolling text says "he just
+left Your Town"). Without **Make my town one of Santa's stops**, "been to
+your town" means the stop on his route nearest to you.
+
+**ETA.** With **ETA shows: Time until Santa reaches my town** (the default),
+the panel shows "DEST IN" and the time until Santa reaches your town, such as
+"6H 48M", then "4 MIN" as he gets close. It counts down all through Christmas
+Eve, at stops and while flying, and the scrolling text says "he reaches Your
+Town in 6 hours 48 min". Once he has visited your town, it goes back to the
+time to his next stop ("ETA 3 MIN"). It needs **Make my town one of Santa's
+stops**; without it, the panel always shows the time to his next stop. With
+**Time to his next stop**, it is always "ETA n MIN", the minutes until his
+next stop, which is usually only 1 to 5 minutes away.
+
+**Small text beside the zoomed-in map.** With **Text beside the zoomed-in
+map: Small** (the default), the "NOW IN" / "FLYING TO" panel uses a tiny
+3x5-pixel font while the map is zoomed in, wrapped to 9 letters a line, so
+the panel is narrower and the map wider (on a 384x256 panel the map grows
+from 336 to 345 pixels wide, and long lines such as "FLYING TO:" and
+"DELIVERED" no longer get cut off). The countdown and Christmas-morning
+screens, and the world map, keep the normal text. This has no effect when
+**Map width in pixels** is set by hand.
 
 ## Files and downloads
 
