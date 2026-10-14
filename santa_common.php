@@ -106,6 +106,7 @@ function fppsantatracker_check($key, $value, $defaults, $info) {
         'MapView' => array('auto', 'world', 'local'),
         'LocalZoom' => array('wide', 'medium', 'close'),
         'WorldShape' => array('fill', 'true'),
+        'ZoomedText' => array('small', 'normal'),
         'SantaMarker' => array('sleigh', 'dot'),
         'PanelColorMode' => array('lines', 'single', 'letter', 'word', 'line'),
         'TextColorMode' => array('Single', 'Per Letter', 'Per Word', 'Per Line', 'Random Letter',

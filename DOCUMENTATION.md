@@ -118,6 +118,7 @@ coordinates. For example, Arlington Heights, IL shows "Chicago, Illinois, USA
 | Map view | `MapView` | Zoom in when Santa is near | Or **Always the whole world** / **Always zoomed in** |
 | Zoomed-in area | `LocalZoom` | Medium (about 2,500 mi) | Wide (about 4,500 mi) or Close (about 1,200 mi) |
 | World map shape | `WorldShape` | Fill the panel | Or **True proportions**. See [How the map works](#how-the-map-works). |
+| Text beside the zoomed-in map | `ZoomedText` | Small (bigger map) | Or **Normal**. See [What the info panel shows](#what-the-info-panel-shows). |
 | Land | `LandColor` | `#00DC46` | |
 | Ocean | `OceanColor` | `#000000` | |
 | My location | `HomeColor` | `#FFFFFF` | The small + marking your town |
@@ -267,6 +268,15 @@ coastline, with lakes such as the Great Lakes cut out.
 | Christmas morning | "SANTA IS HOME!", "MERRY CHRISTMAS!", the total gifts delivered |
 
 The distance shows "CLOSE BY!" when Santa is under 50 miles away.
+
+**Small text beside the zoomed-in map.** With **Text beside the zoomed-in
+map: Small** (the default), the "NOW IN" / "FLYING TO" panel uses a tiny
+3x5-pixel font while the map is zoomed in, wrapped to 9 letters a line, so
+the panel is narrower and the map wider (on a 384x256 panel the map grows
+from 336 to 345 pixels wide, and long lines such as "FLYING TO:" and
+"DELIVERED" no longer get cut off). The countdown and Christmas-morning
+screens, and the world map, keep the normal text. This has no effect when
+**Map width in pixels** is set by hand.
 
 ## Files and downloads
 

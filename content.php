@@ -118,6 +118,11 @@ $fppsantatrackerBoot = array(
               <option value="fill">Fill the panel (leave out Antarctica)</option>
               <option value="true">True proportions</option>
             </select></div>
+          <div class="col-12 col-sm-6" id="sZTextWrap"><label class="form-label mb-1" for="sZText">Text beside the zoomed-in map</label>
+            <select class="form-select" data-key="ZoomedText" id="sZText">
+              <option value="small">Small (bigger map)</option>
+              <option value="normal">Normal</option>
+            </select></div>
         </div>
         <div class="row g-2">
           <div class="col-6 col-sm-4" data-color="LandColor" data-label="Land"></div>
@@ -437,6 +442,7 @@ $fppsantatrackerBoot = array(
     $('#sHomeStop').classList.toggle('d-none', !$('#sHome').checked);
     $('#sZoomWrap').classList.toggle('d-none', $('#sView').value === 'world');
     $('#sShapeWrap').classList.toggle('d-none', $('#sView').value === 'local');
+    $('#sZTextWrap').classList.toggle('d-none', $('#sView').value === 'world');
     $('#sBorderWrap').classList.toggle('d-none', $('#sView').value === 'world' || !$('#sBorders').checked);
     drawSwatches();
   }

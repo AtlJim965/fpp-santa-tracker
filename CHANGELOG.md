@@ -15,6 +15,11 @@ heading when the change is released.
   world map at 60°S and fills the panel's height, so Antarctica and the
   empty Southern Ocean no longer take up the bottom third of tall panels.
   **True proportions** keeps the previous map.
+* **Text beside the zoomed-in map** setting. **Small** (the new default)
+  uses a tiny 3x5-pixel font for the "NOW IN" / "FLYING TO" panel while the
+  map is zoomed in, so the map gets wider and long lines ("FLYING TO:",
+  "HE'S HERE!", "DELIVERED") are wrapped instead of cut off. **Normal**
+  keeps the previous panel.
 * `DOCUMENTATION.md`: a full reference for the settings, commands, map,
   files and troubleshooting, and this change log
 

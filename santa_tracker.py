@@ -100,6 +100,7 @@ DEFAULTS = {
     "MapView": "auto",                  # auto | world | local
     "LocalZoom": "medium",              # wide | medium | close
     "WorldShape": "fill",               # fill | true (world map)
+    "ZoomedText": "small",              # small | normal (panel text, zoomed map)
     "ShowBorders": "1",                 # state/country lines on the zoomed map
     "BorderColor": "#006428",
     # right-hand panel colors
@@ -944,6 +945,38 @@ FONT5x7 = {
     "#": [".#.#.", ".#.#.", "#####", ".#.#.", "#####", ".#.#.", ".#.#."],
 }
 
+# Tiny 3x5 font for the narrow panel beside the zoomed-in map (same characters
+# as FONT5x7).
+FONT3x5 = {
+    "A": [".#.", "#.#", "###", "#.#", "#.#"], "B": ["##.", "#.#", "##.", "#.#", "##."],
+    "C": [".##", "#..", "#..", "#..", ".##"], "D": ["##.", "#.#", "#.#", "#.#", "##."],
+    "E": ["###", "#..", "##.", "#..", "###"], "F": ["###", "#..", "##.", "#..", "#.."],
+    "G": [".##", "#..", "#.#", "#.#", ".##"], "H": ["#.#", "#.#", "###", "#.#", "#.#"],
+    "I": ["###", ".#.", ".#.", ".#.", "###"], "J": ["..#", "..#", "..#", "#.#", ".#."],
+    "K": ["#.#", "#.#", "##.", "#.#", "#.#"], "L": ["#..", "#..", "#..", "#..", "###"],
+    "M": ["#.#", "###", "#.#", "#.#", "#.#"], "N": ["##.", "#.#", "#.#", "#.#", "#.#"],
+    "O": [".#.", "#.#", "#.#", "#.#", ".#."], "P": ["##.", "#.#", "##.", "#..", "#.."],
+    "Q": [".#.", "#.#", "#.#", "##.", ".##"], "R": ["##.", "#.#", "##.", "#.#", "#.#"],
+    "S": [".##", "#..", ".#.", "..#", "##."], "T": ["###", ".#.", ".#.", ".#.", ".#."],
+    "U": ["#.#", "#.#", "#.#", "#.#", "###"], "V": ["#.#", "#.#", "#.#", "#.#", ".#."],
+    "W": ["#.#", "#.#", "#.#", "###", "#.#"], "X": ["#.#", "#.#", ".#.", "#.#", "#.#"],
+    "Y": ["#.#", "#.#", ".#.", ".#.", ".#."], "Z": ["###", "..#", ".#.", "#..", "###"],
+    "0": ["###", "#.#", "#.#", "#.#", "###"], "1": [".#.", "##.", ".#.", ".#.", "###"],
+    "2": ["##.", "..#", ".#.", "#..", "###"], "3": ["##.", "..#", ".#.", "..#", "##."],
+    "4": ["#.#", "#.#", "###", "..#", "..#"], "5": ["###", "#..", "##.", "..#", "##."],
+    "6": [".##", "#..", "###", "#.#", "###"], "7": ["###", "..#", ".#.", ".#.", ".#."],
+    "8": ["###", "#.#", "###", "#.#", "###"], "9": ["###", "#.#", "###", "..#", "##."],
+    " ": ["..."] * 5,
+    ".": ["...", "...", "...", "...", ".#."], ",": ["...", "...", "...", ".#.", "#.."],
+    ":": ["...", ".#.", "...", ".#.", "..."], "!": [".#.", ".#.", ".#.", "...", ".#."],
+    "?": ["##.", "..#", ".#.", "...", ".#."], "'": [".#.", ".#.", "...", "...", "..."],
+    "-": ["...", "...", "###", "...", "..."], "/": ["..#", "..#", ".#.", "#..", "#.."],
+    "(": ["..#", ".#.", ".#.", ".#.", "..#"], ")": ["#..", ".#.", ".#.", ".#.", "#.."],
+    "&": [".#.", "#.#", ".#.", "#.#", ".##"], "#": ["#.#", "###", "#.#", "###", "#.#"],
+}
+SMALL_COLS = 9                       # characters per line in the small panel
+SMALL_PANEL_W = SMALL_COLS * 4 - 1   # 3-pixel letters, 1-pixel gaps
+
 
 def font_text(s):
     """Upper-case, strip accents (Sao Paulo), drop characters we can't draw."""
@@ -1040,11 +1073,12 @@ class Canvas:
         if 0 <= x < self.w and 0 <= y < self.h:
             self.px[y][x] = c
 
-    def text(self, x, y, s, c, scale=1, step=6):
+    def text(self, x, y, s, c, scale=1, step=6, font=None):
+        font = font or FONT5x7
         for ch in font_text(s):
             col = c(ch) if callable(c) else c
             if col is not None:
-                for gy, row in enumerate(FONT5x7[ch]):
+                for gy, row in enumerate(font[ch]):
                     for gx, bit in enumerate(row):
                         if bit == "#":
                             for dy in range(scale):
@@ -1135,6 +1169,14 @@ def draw_frame(st, W, H):
     mw = map_width(W, H)
     cv = Canvas(W, H)
     view = pick_view(st, mw, H)
+    small = False
+    if (view.name == "local" and st["state"] in ("stop", "flying")
+            and cfg_str("ZoomedText").lower() != "normal" and cfg_num("MapWidth", 0, 4096) <= 0):
+        # zoomed in: tiny text in a narrower panel, so the map gets wider
+        smw = W - 2 - SMALL_PANEL_W - int(cfg_num("PanelRightMargin", 0, 40))
+        if smw > mw:
+            mw, small = smw, True
+            view = local_view(mw, H)
     ocean = cfg_color("OceanColor")
     landc = cfg_color("LandColor")
     ss2 = 9
@@ -1175,7 +1217,7 @@ def draw_frame(st, W, H):
 
     px0 = mw + 2
     pw = W - px0 - int(cfg_num("PanelRightMargin", 0, 40))
-    if pw < 30:
+    if pw < (SMALL_PANEL_W if small else 30):
         return cv
     ink = Ink()
     cols = max(1, (pw + 1) // 6)
@@ -1222,6 +1264,8 @@ def draw_frame(st, W, H):
         if st["gifts"] and cfg_bool("ShowGifts") and H >= 63:
             cv.text_center(px0, pw, 47, short_number(st["gifts"]) + " GIFTS", ink("gifts"))
             cv.text_center(px0, pw, 56, "DELIVERED", ink("gifts"))
+    elif state in ("stop", "flying") and small:
+        draw_small_panel(cv, st, px0, pw, H, ink)
     elif state in ("stop", "flying"):
         d = st["dest"]
         y = 1
@@ -1257,6 +1301,54 @@ def draw_frame(st, W, H):
     else:
         cv.text_center(px0, pw, H // 2 - 4, "SANTA", ink("city"))
     return cv
+
+
+def draw_small_panel(cv, st, x, pw, H, ink):
+    """'NOW IN' / 'FLYING TO' panel in the tiny 3x5 font (beside the zoomed-in
+    map). Same lines as the normal panel, wrapped to SMALL_COLS characters."""
+    cols = max(1, (pw + 1) // 4)
+
+    def line(y, s, role):
+        cv.text(x, y, s, ink(role), step=4, font=FONT3x5)
+
+    d = st["dest"]
+    state = st["state"]
+    y = 1
+    for ln in wrap("NOW IN:" if state == "stop" else "FLYING TO:", cols):
+        line(y, ln, "heading")
+        y += 7
+    y += 3
+    city = wrap(d.get("city", ""), cols)[:3]
+    for ln in city:
+        line(y, ln, "city")
+        y += 7
+    region = d.get("region", "")
+    if region and region != d.get("city"):
+        lines = wrap(region, cols)
+        if len(lines) > 2 and "," in region:
+            lines = wrap(region.rsplit(",", 1)[1], cols)   # "..., Japan"
+        for ln in lines[:2]:
+            line(y, ln, "region")
+            y += 7
+    bottom = []
+    if state == "flying":
+        bottom.append((f"ETA {max(1, round(st['left_ms'] / 60000))} MIN", "eta"))
+    if state == "stop" and d.get("id") == "home_stop":
+        bottom.append(("HE'S HERE!", "greet1"))
+    elif cfg_bool("ShowDistance"):
+        bottom.append(("CLOSE BY!" if st["miles"] < 50 else f"{st['miles']:,.0f} MI", "distance"))
+    if state == "stop" and st["gifts"] and cfg_bool("ShowGifts"):
+        bottom.append((short_number(st["gifts"]) + " GIFTS DELIVERED", "gifts"))
+    rows = []
+    for txt, role in bottom:                 # whole items only, while they fit
+        lines = [(ln, role) for ln in wrap(txt, cols)]
+        if y + 3 + 7 * (len(rows) + len(lines)) - 2 > H:
+            break
+        rows += lines
+    yb = H - 7 * len(rows)
+    for ln, role in rows:
+        line(yb, ln, role)
+        yb += 7
 
 
 def render(st):
