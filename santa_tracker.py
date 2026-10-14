@@ -2,8 +2,8 @@
 """
 Santa Tracker for FPP - engine for the fpp-santa-tracker plugin.
 
-Draws a world map with Santa's live position (from Google's Santa Tracker
-route) plus an info panel, or scrolls a text message, on a Pixel Overlay
+Draws a world map with Santa's live position (from the plugin's own route,
+route.json, built from Natural Earth by tools/make_route.py) plus an info panel, or scrolls a text message, on a Pixel Overlay
 Model. All settings come from the plugin's settings page
 (<media>/config/plugin.fpp-santa-tracker); nothing needs editing here.
 
@@ -54,9 +54,9 @@ FPP_HOST = "127.0.0.1"
 SCRIPT_PATH = os.path.abspath(__file__)
 PYTHON = sys.executable or "/usr/bin/python3"
 
-ROUTE_URL = ("https://firebasestorage.googleapis.com/v0/b/"
-             "santa-tracker-firebase.appspot.com/o/route%2Fsanta_en.json?alt=media")
-ROUTE_MAX_AGE = 6 * 3600
+# Santa's route ships with the plugin (built by tools/make_route.py from
+# Natural Earth's public-domain list of cities); nothing is downloaded for it.
+ROUTE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "route.json")
 # Public-domain Natural Earth map data (1:50m), tried in this order.
 NE_SOURCES = [
     "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/",
@@ -67,7 +67,8 @@ NE_LAND = "ne_50m_land.geojson"
 NE_LAKES = "ne_50m_lakes.geojson"
 NE_COUNTRY_LINES = "ne_50m_admin_0_boundary_lines_land.geojson"
 NE_STATE_LINES = "ne_50m_admin_1_states_provinces_lines.geojson"
-# Google's published route is stamped for Dec 24 2019 (takeoff 10:00 UTC).
+# route.json is stamped for Christmas Eve 2019; times are moved to this year
+# by shifting Dec 24 2019 10:00 UTC to Dec 24 10:00 UTC of this season.
 ROUTE_BASE_TAKEOFF_MS = 1577181600000
 
 # ============================ SETTINGS ===================================
@@ -315,28 +316,18 @@ def tz():
 
 
 # ------------------------------------------------------------- route data
+_route_cache = {}
+
+
 def load_route():
-    cache = os.path.join(ensure_data_dir(), "santa_route.json")
-    fresh = os.path.exists(cache) and time.time() - os.path.getmtime(cache) < ROUTE_MAX_AGE
-    if not fresh:
+    """Santa's stops from route.json (read once per run)."""
+    if "dests" not in _route_cache:
         try:
-            req = urllib.request.Request(ROUTE_URL, headers={"User-Agent": "fpp-santa-tracker"})
-            with urllib.request.urlopen(req, timeout=20) as r:
-                data = json.loads(r.read().decode("utf-8"))
-            for d in data.get("destinations", []):
-                d.pop("details", None)           # drop the bulky photo data
-            tmp = cache + ".tmp"
-            with open(tmp, "w") as f:
-                json.dump(data, f)
-            os.replace(tmp, cache)
-            own(cache)
-            log(f"Route downloaded ({len(data['destinations'])} stops)")
+            with open(ROUTE_FILE, encoding="utf-8") as f:
+                _route_cache["dests"] = json.load(f)["destinations"]
         except Exception as e:
-            if not os.path.exists(cache):
-                raise RuntimeError(f"Can't download Santa's route: {e}")
-            log(f"Route download failed ({e}); using the saved copy")
-    with open(cache) as f:
-        return json.load(f)["destinations"]
+            raise RuntimeError(f"Can't read Santa's route ({ROUTE_FILE}): {e}")
+    return _route_cache["dests"]
 
 
 def season_year(now_ms):
@@ -873,19 +864,23 @@ GLOBE_TILT = 25.0            # latitude at the centre of the globe
 GLOBE_SPIN = 20.0            # degrees per minute while Santa is at the North Pole
 GLOBE_SS = 2                 # samples per pixel across (edge and coast smoothing)
 GLOBE_TWILIGHT = 0.06        # soft day/night edge (sine of the sun's elevation)
+GLOBE_LAT_RANGE = (-55.0, 60.0)   # how far the globe tilts to follow Santa north/south
+GLOBE_RECENTER = 30.0        # turn the globe when Santa is this many degrees from its centre
+GLOBE_LEAD = 20.0            # ...putting him this far behind the centre, so he flies across it
 
 
 class GlobeView:
-    """Orthographic globe centred on (GLOBE_TILT, lon_center), as large as
+    """Orthographic globe centred on (lat_center, lon_center), as large as
     the map's height allows, centred in the map area."""
 
-    def __init__(self, w, h, lon_center):
+    def __init__(self, w, h, lon_center, lat_center=GLOBE_TILT):
         self.name, self.w, self.h = "globe", w, h
         # whole degrees, so the land lookup can be reused while Santa is near
         self.lonc = (round(lon_center) + 180) % 360 - 180
+        self.latc = round(lat_center)
         self.r = min(w, h) / 2 - 1
         self.cx, self.cy = w / 2, h / 2
-        self.p0, self.l0 = math.radians(GLOBE_TILT), math.radians(self.lonc)
+        self.p0, self.l0 = math.radians(self.latc), math.radians(self.lonc)
 
     def xy(self, lat, lng):
         """(x, y, on the visible side)"""
@@ -904,15 +899,28 @@ class GlobeView:
         return min(max(int(x), 0), self.w - 1), min(max(int(y), 0), self.h - 1)
 
     def key(self):
-        return ("globe", self.w, self.h, self.lonc)
+        return ("globe", self.w, self.h, self.lonc, self.latc)
+
+
+_globe_centre = {}
 
 
 def globe_view(st, w, h):
-    if st["state"] in ("stop", "flying"):
-        lon = st["loc"]["lng"]                    # follow Santa
-    else:
+    """While Santa travels the globe holds still and he flies across its face;
+    once he is GLOBE_RECENTER degrees from the centre it turns (and tilts
+    north or south) to bring him back, with the centre a little ahead of him.
+    At the North Pole (countdown, Christmas morning) it slowly spins."""
+    if st["state"] not in ("stop", "flying"):
+        _globe_centre.clear()
         lon = (st.get("now_ms", time.time() * 1000) / 60000 * GLOBE_SPIN) % 360 - 180
-    return GlobeView(w, h, lon)
+        return GlobeView(w, h, lon)
+    lat, lng = st["loc"]["lat"], st["loc"]["lng"]
+    c = _globe_centre.get("c")
+    if c is None or miles_between(c[0], c[1], lat, lng) / 69.1 > GLOBE_RECENTER:
+        lo, hi = GLOBE_LAT_RANGE
+        c = (min(max(lat, lo), hi), lng + st.get("heading", -1) * GLOBE_LEAD)
+        _globe_centre["c"] = c
+    return GlobeView(w, h, c[1], c[0])
 
 
 def globe_samples(view):
@@ -1915,8 +1923,14 @@ def main():
         # a Show Once / Preview that interrupted the running display hands the
         # matrix back to it afterwards, so the display still counts as running
         resuming = any(n.get("resuming") for n in once)
+        sim = ""
+        for n in loop:
+            argv = n.get("argv") or []
+            if "--at" in argv[:-1]:
+                sim = argv[argv.index("--at") + 1]       # a test run of the live display
         print(json.dumps({"ok": True, "running": bool(loop) or resuming,
-                          "showing": bool(once), "pids": [n["pid"] for n in notes]}))
+                          "showing": bool(once), "simulated": sim,
+                          "pids": [n["pid"] for n in notes]}))
         return 0
     load_settings(a.settings)
 
@@ -2048,8 +2062,24 @@ def main():
                     cv = render(st)
                     png = cv.png()
                     if a.once or mode == "both":
-                        show_image(cv, map_secs + 3)
-                        time.sleep(map_secs)
+                        # map for map_secs, redrawn every `refresh` seconds so
+                        # Santa and the countdown keep moving (Show Once,
+                        # Preview, and the map part of "map then text")
+                        end = time.time() + map_secs
+                        shown = None
+                        while True:
+                            if png != shown:
+                                show_image(cv, max(0.0, end - time.time()) + 3)
+                                shown = png
+                            left = end - time.time()
+                            if left <= 0.5:
+                                break
+                            time.sleep(min(refresh, left))
+                            if end - time.time() <= 0.5:
+                                break
+                            st = santa_status(load_route(), now_ms())
+                            cv = render(st)
+                            png = cv.png()
                     else:
                         # only reload the picture when it changes (reloading
                         # makes FPP blank the panel for a moment)

@@ -13,6 +13,7 @@ introduction see [README.md](README.md). For what changed and when, see the
 * [The settings page](#the-settings-page)
 * [Preview moments](#preview-moments)
 * [FPP Commands](#fpp-commands)
+* [Santa's route](#santas-route)
 * [How the map works](#how-the-map-works)
 * [What the info panel shows](#what-the-info-panel-shows)
 * [Files and downloads](#files-and-downloads)
@@ -33,7 +34,7 @@ in FPP. It can show:
   he reaches Your Town in 6 hours 48 min - 4,187 mi from Your Town"
 * **the map, then the scrolling text**, one after the other
 
-Santa's route comes from Google's Santa Tracker. Your town can be added as
+Santa's route is built into the plugin: about 580 cities around the world, each reached around its local midnight (see [Santa's route](#santas-route)). Your town can be added as
 one of his stops, so the matrix shows "FLYING TO: YOUR TOWN" and then
 "HE'S HERE!".
 
@@ -173,7 +174,7 @@ The per-line colors:
 | Overlay model | `ModelName` | first model | The Pixel Overlay Model to draw on |
 | Show | `DisplayMode` | Map with info panel | Or **Scrolling text** / **Map, then scrolling text** |
 | Map seconds | `MapSeconds` | 20 | How long the map shows before the text, in "Map, then scrolling text" mode |
-| Update every (seconds) | `RefreshSeconds` | 30 | How often the running display redraws (5-3600) |
+| Update every (seconds) | `RefreshSeconds` | 30 | Under the preview, next to **Run live from this moment**. How often the matrix redraws (5-3600): the running display, **Show on matrix**, **Show Once** and the map part of "Map, then scrolling text". 15 is a good choice for Christmas Eve. The matrix only reloads when the picture has changed. |
 | Start the display automatically when FPP starts | `AutoStart` | off | |
 
 ### Scrolling text
@@ -209,9 +210,21 @@ same moments are available to the **Santa Tracker - Preview** command.
 | Santa in my town | While Santa is in your town |
 | Christmas morning | Santa back home |
 
-**Show on matrix** saves your settings, then shows the chosen moment on the
-matrix for **Seconds** (3-600). **LED look** draws the preview as round LEDs;
-it only changes the picture in the browser.
+**Show on matrix** saves your settings, then plays the chosen moment on the
+matrix for **Show for (seconds)** (3-600) and then turns the matrix off. The
+clock keeps running from that moment and the matrix redraws every **Update
+every** seconds, so a preview of "Approaching my town" plays out: "DEST IN 1
+MIN", then "HE'S HERE!".
+
+**Run live from this moment** is for testing the running display: it starts
+**Start Display** as if it were the chosen moment, and it keeps going (and
+updating every **Update every** seconds) until you press **Stop**. While it
+runs, the start button shows **Running (simulated: ...)** in yellow. Your
+FPP's clock is not changed. Press **Stop** when you're done, then **Start
+Display** for the real time.
+
+**LED look** draws the preview as round LEDs; it only changes the picture in
+the browser.
 
 ## FPP Commands
 
@@ -219,7 +232,7 @@ Use these in playlists, schedules, buttons and FPP's other command lists.
 
 | Command | Arguments | What it does |
 |---|---|---|
-| Santa Tracker - Start | Display | Starts the display. It keeps updating until **Stop**. |
+| Santa Tracker - Start | Display, Simulate time | Starts the display. It keeps updating until **Stop**. Leave **Simulate time** at **Real time** for the show; another choice runs it as if it were that [preview moment](#preview-moments), for testing. |
 | Santa Tracker - Stop | none | Stops the display and any Show Once or Preview, clears the model and puts it back the way it was |
 | Santa Tracker - Show Once | Display, Seconds | Shows Santa's current position for that many seconds, then stops |
 | Santa Tracker - Preview | Moment, Seconds | Shows a [preview moment](#preview-moments) for that many seconds |
@@ -233,6 +246,28 @@ matrix, then hands it back to the running display when it finishes.
 A typical setup: schedule **Santa Tracker - Start** at dusk and **Santa
 Tracker - Stop** when the show ends, or tick **Start the display
 automatically when FPP starts**.
+
+## Santa's route
+
+Santa's route is part of the plugin (`route.json`), so nothing has to be
+downloaded for it, even on Christmas Eve. It was built from Natural Earth's
+public-domain list of the world's cities by `tools/make_route.py`:
+
+* about 580 stops: the biggest cities, kept at least 220 km apart so they are
+  spread around the world, plus the biggest place of every country and every
+  US state, Canadian province and Australian state, so remote places such as
+  Alaska, the Yukon, Greenland, Iceland, Svalbard and the Pacific islands get
+  a visit too
+* Santa reaches each city within an hour of its local midnight. He sweeps
+  west from the date line an hour of the night at a time, always flying on to
+  the nearest city he hasn't visited, at a steady speed within each hour
+* he takes off from the North Pole at about 12:00 UTC on December 24 (6 AM
+  Chicago time) and is back about 12:50 UTC on Christmas morning
+* gifts delivered grow with each city's population, to about 7.6 billion
+
+To change the route (more or fewer stops, different spacing), edit the
+numbers at the top of `tools/make_route.py` and run it with Natural Earth's
+`ne_10m_populated_places_simple.geojson`; it writes a new `route.json`.
 
 ## How the map works
 
@@ -248,10 +283,12 @@ borders. With **Zoom in when Santa is near**, the map switches to the zoomed
 view while Santa is inside that area and back to the world when he leaves.
 
 **Globe.** With **Map view: Globe (zoom in when Santa is near)**, the world
-map is replaced by a round globe, as tall as the panel and tilted to show the
-northern hemisphere. On Christmas Eve it turns to keep Santa in the middle,
-so it rotates as he travels west; before and after, while he is at the North
-Pole, it slowly spins (one turn every 18 minutes, a step each time the
+map is replaced by a round globe, as tall as the panel. On Christmas Eve the
+globe holds still and Santa flies across its face; when he is about a third
+of the way to the edge it turns, and tilts north or south, to bring him back
+near the middle (so stops far south, such as South Georgia, aren't stuck on
+the bottom edge). Before and after, while he is at the North Pole, it is
+tilted to show the northern hemisphere and slowly spins (one turn every 18 minutes, a step each time the
 display updates). The night side is shaded from the sun's real position, so
 you can see Santa riding the edge of the night (he visits each place around
 midnight). **Globe night-side brightness** sets how dark the night side is
@@ -312,8 +349,6 @@ screens, and the world map, keep the normal text. This has no effect when
 **Downloads.** Nothing about you or your show is sent anywhere. The plugin
 downloads:
 
-* Google's public Santa Tracker route, from `firebasestorage.googleapis.com`,
-  at most every 6 hours
 * once, the Natural Earth map data (coastlines, lakes, borders), from
   `raw.githubusercontent.com`, or `cdn.jsdelivr.net` /
   `d2ad6b4ur7yvpq.cloudfront.net` if that fails
