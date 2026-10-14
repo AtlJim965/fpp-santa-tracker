@@ -97,7 +97,7 @@ DEFAULTS = {
     "SantaMarker": "sleigh",            # sleigh | dot
     "TrailColor": "#FFB400",
     "ShowTrail": "1",
-    "MapView": "auto",                  # auto | world | local | globe
+    "MapView": "auto",                  # auto | globe
     "LocalZoom": "medium",              # wide | medium | close
     "WorldShape": "fill",               # fill | true (world map)
     "ZoomedText": "small",              # small | normal (panel text, zoomed map)
@@ -192,6 +192,15 @@ def ensure_data_dir():
 
 
 # ------------------------------------------------------------- settings
+def upgrade_settings(cfg):
+    """Settings from older versions: the 'Always the whole world' and
+    'Always zoomed in' map views were removed; they zoom in when Santa is
+    near now, like the default."""
+    if str(cfg.get("MapView", "")).lower() in ("world", "local"):
+        cfg["MapView"] = "auto"
+    return cfg
+
+
 def read_plugin_settings(path=CONFIG_FILE):
     """FPP plugin settings file: one `Name = "value"` per line."""
     out = {}
@@ -243,6 +252,7 @@ def load_settings(override_path=None):
             CFG.update({k: str(v) for k, v in extra.items() if k in DEFAULTS})
         except Exception as e:
             log(f"Couldn't read preview settings: {e}")
+    upgrade_settings(CFG)
     for key, fpp_key in (("Latitude", "Latitude"), ("Longitude", "Longitude"),
                          ("TimeZone", "TimeZone")):
         if not CFG.get(key, "").strip():
@@ -844,14 +854,10 @@ def local_view(w, h):
 
 
 def pick_view(st, w, h):
-    """Map view for this frame. 'auto' zooms in around your town while Santa
-    is inside the zoomed area, and shows the whole world otherwise."""
+    """Map view for this frame: the zoomed-in map around your town while
+    Santa is inside it, otherwise the world map ('auto') or the globe."""
     mode = cfg_str("MapView").lower()
-    if mode == "world":
-        return world_view(w, h)
     local = local_view(w, h)
-    if mode == "local":
-        return local
     if st["state"] in ("stop", "flying") and local.contains(st["loc"]["lat"], st["loc"]["lng"]):
         return local
     if mode == "globe":
@@ -1915,7 +1921,7 @@ def main():
     load_settings(a.settings)
 
     if a.settings_json:
-        saved = read_plugin_settings()
+        saved = upgrade_settings(read_plugin_settings())
         print(json.dumps({"ok": True, "defaults": DEFAULTS,
                           "settings": {k: saved.get(k, v) for k, v in DEFAULTS.items()},
                           "palettes": PALETTES,

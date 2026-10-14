@@ -16,7 +16,6 @@ heading when the change is released.
   shaded from the sun's real position. It switches to the zoomed-in map when
   Santa is near your town. New settings **Globe night-side brightness** and
   **Globe ocean**.
-
 * **World map shape** setting. **Fill the panel** (the new default) stops the
   world map at 60°S and fills the panel's height, so Antarctica and the
   empty Southern Ocean no longer take up the bottom third of tall panels.
@@ -40,6 +39,10 @@ heading when the change is released.
 
 ### Changed
 
+* **Map view** has two choices: **Zoom in when Santa is near** (world map)
+  and **Globe (zoom in when Santa is near)**. **Always the whole world** and
+  **Always zoomed in** were removed; a saved setting using either now zooms
+  in when Santa is near.
 * The bottom lines of the "NOW IN" / "FLYING TO" panel are wrapped instead
   of cut off at the right edge, and on short panels whole lines are left
   out (gifts first) instead of running off the bottom.

@@ -115,7 +115,7 @@ coordinates. For example, Arlington Heights, IL shows "Chicago, Illinois, USA
 | Setting | Key | Default | Notes |
 |---|---|---|---|
 | Show Santa as | `SantaMarker` | Sleigh and reindeer | Or **A dot**. Small maps (under 40x16) always use the dot. |
-| Map view | `MapView` | Zoom in when Santa is near | Or **Always the whole world** / **Always zoomed in** / **Globe (zoom in when Santa is near)** |
+| Map view | `MapView` | Zoom in when Santa is near | Or **Globe (zoom in when Santa is near)**. Both switch to the zoomed-in map while Santa is near your town. |
 | Zoomed-in area | `LocalZoom` | Medium (about 2,500 mi) | Wide (about 4,500 mi) or Close (about 1,200 mi) |
 | World map shape | `WorldShape` | Fill the panel | Or **True proportions**. See [How the map works](#how-the-map-works). |
 | Globe night-side brightness (%) | `GlobeNight` | 50 | Globe only: how bright the night side is (0-100; 100 = no night shading) |
