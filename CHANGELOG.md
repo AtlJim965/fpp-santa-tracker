@@ -25,6 +25,10 @@ heading when the change is released.
   his visit to your town, and "he reaches Your Town in 6 hours 48 min" in
   the scrolling text. After his visit it goes back to the time to his next
   stop. **Time to his next stop** keeps the previous "ETA n MIN".
+* After Santa's visit to your town, the distance line says "JUST LEFT"
+  instead of "CLOSE BY!" while he is still within 50 miles, and the
+  scrolling text says "he just left Your Town" instead of "he's almost
+  here!".
 * `DOCUMENTATION.md`: a full reference for the settings, commands, map,
   files and troubleshooting, and this change log
 

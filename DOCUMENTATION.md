@@ -148,7 +148,7 @@ The per-line colors:
 | City name | `CityColor` | `#FFFFFF` |
 | State / country | `RegionColor` | `#787878` |
 | "ETA 3 MIN" | `EtaColor` | `#FFFFFF` |
-| Distance / "CLOSE BY!" | `DistanceColor` | `#FF0000` |
+| Distance / "CLOSE BY!" / "JUST LEFT" | `DistanceColor` | `#FF0000` |
 | Gifts delivered | `GiftsColor` | `#00C83C` |
 | Countdown words | `CountdownTextColor` | `#FFFFFF` |
 | Countdown number | `CountdownNumberColor` | `#FF0000` |
@@ -268,7 +268,10 @@ coastline, with lakes such as the Great Lakes cut out.
 | At your town | "NOW IN:" your town, "HE'S HERE!" |
 | Christmas morning | "SANTA IS HOME!", "MERRY CHRISTMAS!", the total gifts delivered |
 
-The distance shows "CLOSE BY!" when Santa is under 50 miles away.
+The distance shows "CLOSE BY!" when Santa is under 50 miles away, and
+"JUST LEFT" once he has been to your town (the scrolling text says "he just
+left Your Town"). Without **Make my town one of Santa's stops**, "been to
+your town" means the stop on his route nearest to you.
 
 **ETA.** With **ETA shows: Time until Santa reaches my town** (the default),
 the panel shows "DEST IN" and the time until Santa reaches your town, such as

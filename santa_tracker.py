@@ -112,7 +112,7 @@ DEFAULTS = {
     "CityColor": "#FFFFFF",
     "RegionColor": "#787878",           # state / country
     "EtaColor": "#FFFFFF",              # ETA 3 MIN
-    "DistanceColor": "#FF0000",         # 4,123 MI / CLOSE BY!
+    "DistanceColor": "#FF0000",         # 4,123 MI / CLOSE BY! / JUST LEFT
     "GiftsColor": "#00C83C",            # 6.8B GIFTS DELIVERED
     "CountdownTextColor": "#FFFFFF",    # SANTA BEGINS HIS JOURNEY IN ... DAYS
     "CountdownNumberColor": "#FF0000",  # 73
@@ -468,10 +468,15 @@ def santa_status(dests, now_ms):
                           gifts=prev.get("presentsDelivered", 0),
                           visited=[s["location"] for s in stops[1:i]])
                 break
+    hlat, hlng = home_latlng()
     home = next((d for d in stops if d.get("id") == "home_stop"), None)
     if home and st["state"] in ("stop", "flying") and now_ms < home["arrival"]:
         st["home_left_ms"] = int(home["arrival"] - now_ms)
-    hlat, hlng = home_latlng()
+    # has he been to your town yet? (without the home stop: the real stop
+    # nearest to you)
+    near = home or (min(stops[1:-1], key=lambda d: miles_between(
+        hlat, hlng, d["location"]["lat"], d["location"]["lng"])) if len(stops) > 2 else None)
+    st["passed_home"] = bool(near) and now_ms >= near["departure"]
     st["miles"] = miles_between(hlat, hlng, st["loc"]["lat"], st["loc"]["lng"])
     return st
 
@@ -495,7 +500,8 @@ def panel_bottom(st):
     if at_home:
         out.append(("HE'S HERE!", "greet1"))
     elif cfg_bool("ShowDistance"):
-        out.append(("CLOSE BY!" if st["miles"] < 50 else f"{st['miles']:,.0f} MI", "distance"))
+        close = "JUST LEFT" if st.get("passed_home") else "CLOSE BY!"
+        out.append((close if st["miles"] < 50 else f"{st['miles']:,.0f} MI", "distance"))
     if state == "stop" and st["gifts"] and cfg_bool("ShowGifts"):
         out.append((short_number(st["gifts"]) + " GIFTS DELIVERED", "gifts"))
     return out
@@ -553,7 +559,8 @@ def santa_message(st):
         parts.append(f"he reaches {home_name()} in {hours_text(st['home_left_ms'])}")
     if cfg_bool("ShowDistance"):
         mi = st["miles"]
-        parts.append("he's almost here!" if mi < 50 else f"{mi:,.0f} mi from {home_name()}")
+        close = f"he just left {home_name()}" if st.get("passed_home") else "he's almost here!"
+        parts.append(close if mi < 50 else f"{mi:,.0f} mi from {home_name()}")
     if cfg_bool("ShowGifts") and st["gifts"]:
         parts.append(f"{st['gifts']:,} gifts delivered")
     return " - ".join(parts)

@@ -168,7 +168,7 @@ $fppsantatrackerBoot = array(
           <div class="col-6 col-sm-4" data-color="CityColor" data-label="City name"></div>
           <div class="col-6 col-sm-4" data-color="RegionColor" data-label="State / country"></div>
           <div class="col-6 col-sm-4" data-color="EtaColor" data-label="&ldquo;ETA 3 MIN&rdquo;"></div>
-          <div class="col-6 col-sm-4" data-color="DistanceColor" data-label="Distance / &ldquo;CLOSE BY!&rdquo;"></div>
+          <div class="col-6 col-sm-4" data-color="DistanceColor" data-label="Distance / &ldquo;CLOSE BY!&rdquo; / &ldquo;JUST LEFT&rdquo;"></div>
           <div class="col-6 col-sm-4" data-color="GiftsColor" data-label="Gifts delivered"></div>
           <div class="col-6 col-sm-4" data-color="CountdownTextColor" data-label="Countdown words"></div>
           <div class="col-6 col-sm-4" data-color="CountdownNumberColor" data-label="Countdown number"></div>
