@@ -51,6 +51,12 @@ if [ "$NEED_RESTART" = 1 ] && type setSetting >/dev/null 2>&1; then
     setSetting restartFlag 1 || true
 fi
 
+# "Follow FPP's location & time zone": settle it for settings saved before
+# that box existed (while FPP's location still matches them), and save a
+# location changed in FPP since. Only changes the existing settings file.
+MEDIADIR="$MEDIADIR" LOGDIR="$LOGDIR" /usr/bin/python3 "$PLUGINDIR/santa_tracker.py" --sync-location \
+    >/dev/null 2>&1 || true
+
 # After an update a running display is still the old code. Start the new
 # code; it takes over from the old copy without blanking the matrix.
 if pgrep -f "$PLUGINDIR/santa_tracker.py --loop" >/dev/null 2>&1; then

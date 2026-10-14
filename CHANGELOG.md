@@ -11,6 +11,12 @@ heading when the change is released.
 
 ### Added
 
+* **Follow FPP's location & time zone** (Location, on by default) replaces
+  the **Use FPP's location & time zone** button. While it's ticked, a
+  location or time zone changed in FPP's settings is picked up and saved
+  automatically (within 5 minutes on a running display, or when the settings
+  page is opened). Untick it to type a different town. Settings from before
+  keep their own values if they differ from FPP's.
 * A small **?** next to each section title on the settings page (Location,
   Map, Right-hand text colors, Wording, Display, Scrolling text, Preview):
   point at it, or tap it on a phone, for a short description of that
