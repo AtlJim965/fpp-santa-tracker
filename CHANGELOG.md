@@ -11,6 +11,19 @@ heading when the change is released.
 
 ### Added
 
+* **Built-in route**: Santa's route is now part of the plugin (`route.json`,
+  about 580 cities built from public-domain Natural Earth data by
+  `tools/make_route.py`) instead of Google's Santa Tracker route, so nothing
+  is downloaded for it and Christmas Eve works without internet. Every
+  country, and every US state, Canadian province and Australian state, gets
+  at least one stop (Anchorage, Whitehorse, Nuuk, Reykjavik, Fiji ...). The
+  old saved Google route is removed on update.
+* **Run live from this moment** (under the preview): starts the running
+  display as if it were the chosen preview moment, for testing, until
+  **Stop**, without changing the FPP's clock. The start button shows
+  **Running (simulated: ...)** while it runs. The **Santa Tracker - Start**
+  command has a matching optional **Simulate time** option (default **Real
+  time**).
 * **Globe** map view: a round globe that turns to follow Santa on Christmas
   Eve and slowly spins while he is at the North Pole, with the night side
   shaded from the sun's real position. It switches to the zoomed-in map when
@@ -39,6 +52,23 @@ heading when the change is released.
 
 ### Changed
 
+* Documentation: troubleshooting for a display that hardly seems to move and
+  for a wrong FPP clock; the README mentions the globe, the built-in route,
+  **Run live from this moment** and **Update every**.
+* Globe: Santa now flies across the face of the globe, and the globe only
+  turns (and tilts north or south) when he is about a third of the way to
+  the edge, instead of keeping him pinned in the middle, so you can see him
+  move. Stops far south (South Georgia, the Falklands) are no longer on the
+  bottom edge. The globe is redrawn much less often, so updates are quicker.
+* **Update every (seconds)** moved from the Display section to under the
+  preview, next to **Run live from this moment**.
+* The preview's **Seconds** box is now labelled **Show for (seconds)**: how
+  long **Show on matrix** plays before it turns the matrix off.
+* **Show on matrix**, **Show Once** and the map part of **Map, then
+  scrolling text** redraw every **Update every** seconds while they show,
+  instead of holding one still picture, so Santa moves and the countdown
+  ticks (a preview of "Approaching my town" plays through to "HE'S HERE!").
+  The matrix only reloads when the picture has changed.
 * New plugin icon: Santa waving from his sleigh, on a see-through
   background (Plugin Manager and the top of the settings page).
 * **Map view** has two choices: **Zoom in when Santa is near** (world map)

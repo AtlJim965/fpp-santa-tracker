@@ -6,7 +6,7 @@
 #   - the overlay model's on/off state (put back as it was before the plugin
 #     first drew on it), and what the plugin drew on it
 #   - images/santa_map_*.png         map frames
-#   - plugindata/fpp-santa-tracker/  route and map cache, status notes,
+#   - plugindata/fpp-santa-tracker/  map cache, status notes,
 #                                    saved model state, commands checksum
 #   - logs/plugin-fpp-santa-tracker.log (and rotated copies)
 #   - the plugin's commands, which fppd keeps listing until it restarts
