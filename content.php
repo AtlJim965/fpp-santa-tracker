@@ -13,6 +13,10 @@ $fppsantatrackerBoot = array(
 #fppsantatracker .fst-preview { line-height: 0; }
 #fppsantatracker .fst-preview canvas { width: 100%; height: auto; image-rendering: pixelated; border-radius: .375rem; }
 #fppsantatracker .fst-swatch { width: 1.25rem; height: 1.25rem; border-radius: .25rem; display: inline-block; }
+#fppsantatracker .fst-q { width: 1.1rem; height: 1.1rem; padding: 0; border-radius: 50%; font-size: .7rem; font-weight: 700;
+  line-height: 1; vertical-align: .2em; border: 1px solid var(--bs-secondary-color); background: transparent;
+  color: var(--bs-secondary-color); cursor: help; }
+#fppsantatracker .fst-q:hover, #fppsantatracker .fst-q:focus { color: var(--bs-body-bg); background: var(--bs-secondary-color); }
 #fppsantatracker .fst-savebar { position: sticky; bottom: .5rem; z-index: 5; }
 @media (min-width: 1200px) { #fppsantatracker .fst-aside { position: sticky; top: .75rem; } }
 </style>
@@ -36,7 +40,7 @@ $fppsantatrackerBoot = array(
       <div class="fst-aside">
         <div class="card">
           <div class="card-body">
-            <h3 class="h5 card-title">Preview</h3>
+            <h3 class="h5 card-title">Preview <button type="button" class="fst-q" data-bs-toggle="tooltip" data-bs-placement="top" title="A picture of your panel that updates as you change settings. Pick a moment to see another day or time, then try it on the real matrix." aria-label="About Preview">?</button></h3>
             <p class="small text-body-secondary mb-2">Updates as you change settings. Nothing is sent to the matrix until you press <b>Show on matrix</b> or <b>Run live from this moment</b>.</p>
             <div class="fst-preview bg-black rounded p-2"><canvas id="sCanvas" width="960" height="320"></canvas></div>
             <div class="row g-2 align-items-end mt-1">
@@ -78,7 +82,7 @@ $fppsantatrackerBoot = array(
     <div class="col-12 col-xl-6 order-xl-1">
 
       <div class="card mb-3"><div class="card-body">
-        <h3 class="h5 card-title">Location</h3>
+        <h3 class="h5 card-title">Location <button type="button" class="fst-q" data-bs-toggle="tooltip" data-bs-placement="top" title="Where your town is, so Santa's distance, ETA and the zoomed-in map are right. Optionally makes your town one of his stops." aria-label="About Location">?</button></h3>
         <div class="row g-2">
           <div class="col-12 col-sm-6"><label class="form-label mb-1" for="sCity">City name</label>
             <input type="text" class="form-control" id="sCity" data-key="CityName" maxlength="40" placeholder="Your Town"></div>
@@ -107,7 +111,7 @@ $fppsantatrackerBoot = array(
       </div></div>
 
       <div class="card mb-3"><div class="card-body">
-        <h3 class="h5 card-title">Map</h3>
+        <h3 class="h5 card-title">Map <button type="button" class="fst-q" data-bs-toggle="tooltip" data-bs-placement="top" title="How the map looks: flat world map or globe, how Santa is drawn, how far it zooms in near your town, and the map colors." aria-label="About Map">?</button></h3>
         <div class="row g-2 mb-2">
           <div class="col-12 col-sm-6"><label class="form-label mb-1" for="sMarker">Show Santa as</label>
             <select class="form-select" data-key="SantaMarker" id="sMarker">
@@ -158,7 +162,7 @@ $fppsantatrackerBoot = array(
       </div></div>
 
       <div class="card mb-3"><div class="card-body">
-        <h3 class="h5 card-title">Right-hand text colors</h3>
+        <h3 class="h5 card-title">Right-hand text colors <button type="button" class="fst-q" data-bs-toggle="tooltip" data-bs-placement="top" title="Colors of the info panel beside the map (NOW IN, city, ETA, distance, gifts, countdown and greetings)." aria-label="About Right-hand text colors">?</button></h3>
         <div class="row g-2">
           <div class="col-12 col-sm-6"><label class="form-label mb-1" for="sPanelMode">Color style</label>
             <select class="form-select" data-key="PanelColorMode" id="sPanelMode">
@@ -193,7 +197,7 @@ $fppsantatrackerBoot = array(
       </div></div>
 
       <div class="card mb-3"><div class="card-body">
-        <h3 class="h5 card-title">Wording</h3>
+        <h3 class="h5 card-title">Wording <button type="button" class="fst-q" data-bs-toggle="tooltip" data-bs-placement="top" title="What the panel says: the countdown message, what the ETA counts down to, and whether distance and gifts are shown." aria-label="About Wording">?</button></h3>
         <label class="form-label mb-1" for="sPhrase">Countdown message</label>
         <div class="input-group flex-wrap">
           <span class="input-group-text">Santa</span>
@@ -216,7 +220,7 @@ $fppsantatrackerBoot = array(
       </div></div>
 
       <div class="card mb-3"><div class="card-body">
-        <h3 class="h5 card-title">Display</h3>
+        <h3 class="h5 card-title">Display <button type="button" class="fst-q" data-bs-toggle="tooltip" data-bs-placement="top" title="Which overlay model (matrix) to draw on, whether to show the map, scrolling text or both, and starting automatically with FPP." aria-label="About Display">?</button></h3>
         <div class="row g-2">
           <div class="col-12 col-sm-6"><label class="form-label mb-1" for="sModel">Overlay model</label>
             <select class="form-select" data-key="ModelName" id="sModel"><option value="">(first model)</option></select></div>
@@ -237,7 +241,7 @@ $fppsantatrackerBoot = array(
       </div></div>
 
       <div class="card mb-3"><div class="card-body">
-        <h3 class="h5 card-title">Scrolling text</h3>
+        <h3 class="h5 card-title">Scrolling text <button type="button" class="fst-q" data-bs-toggle="tooltip" data-bs-placement="top" title="Font, size, speed and colors of the scrolling message, used when Show includes scrolling text." aria-label="About Scrolling text">?</button></h3>
         <p class="small text-body-secondary">Used when Show is set to scrolling text. FPP draws this text itself, so the preview shows the message it will scroll rather than a picture.</p>
         <div class="row g-2">
           <div class="col-12 col-sm-6"><label class="form-label mb-1" for="sFont">Font</label>
@@ -654,6 +658,10 @@ $fppsantatrackerBoot = array(
   $('#sCustomCount').addEventListener('change', function () { showCustomCount(); changed(); });
   $('#sMoment').addEventListener('change', runPreview);
   $('#sLed').addEventListener('change', function () { if (lastPreview) drawPng(lastPreview); });
+  // "?" next to each section title: a short description on hover, focus or tap
+  $$('.fst-q').forEach(function (b) {
+    if (window.bootstrap && bootstrap.Tooltip) { bootstrap.Tooltip.getOrCreateInstance(b); }
+  });
   $('#sSave').addEventListener('click', save);
   // FPP's help window (F1) shows help/content.php; open it on its own if
   // this FPP has no help window

@@ -11,6 +11,10 @@ heading when the change is released.
 
 ### Added
 
+* A small **?** next to each section title on the settings page (Location,
+  Map, Right-hand text colors, Wording, Display, Scrolling text, Preview):
+  point at it, or tap it on a phone, for a short description of that
+  section.
 * **Help** button on the settings page (or press **F1**): a help page that
   describes each setting, with links at the top to each section and the
   preview at the bottom.
