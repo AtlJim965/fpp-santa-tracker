@@ -173,7 +173,7 @@ The per-line colors:
 | Overlay model | `ModelName` | first model | The Pixel Overlay Model to draw on |
 | Show | `DisplayMode` | Map with info panel | Or **Scrolling text** / **Map, then scrolling text** |
 | Map seconds | `MapSeconds` | 20 | How long the map shows before the text, in "Map, then scrolling text" mode |
-| Update every (seconds) | `RefreshSeconds` | 30 | How often the running display redraws (5-3600) |
+| Update every (seconds) | `RefreshSeconds` | 30 | How often the matrix redraws (5-3600): the running display, **Show on matrix**, **Show Once** and the map part of "Map, then scrolling text". 15 is a good choice for Christmas Eve. The matrix only reloads when the picture has changed. |
 | Start the display automatically when FPP starts | `AutoStart` | off | |
 
 ### Scrolling text
@@ -210,7 +210,9 @@ same moments are available to the **Santa Tracker - Preview** command.
 | Christmas morning | Santa back home |
 
 **Show on matrix** saves your settings, then shows the chosen moment on the
-matrix for **Seconds** (3-600). **LED look** draws the preview as round LEDs;
+matrix for **Seconds** (3-600). The clock keeps running from that moment and
+the matrix redraws every **Update every** seconds, so a preview of
+"Approaching my town" plays out: "DEST IN 1 MIN", then "HE'S HERE!". **LED look** draws the preview as round LEDs;
 it only changes the picture in the browser.
 
 ## FPP Commands

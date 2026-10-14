@@ -39,6 +39,11 @@ heading when the change is released.
 
 ### Changed
 
+* **Show on matrix**, **Show Once** and the map part of **Map, then
+  scrolling text** redraw every **Update every** seconds while they show,
+  instead of holding one still picture, so Santa moves and the countdown
+  ticks (a preview of "Approaching my town" plays through to "HE'S HERE!").
+  The matrix only reloads when the picture has changed.
 * New plugin icon: Santa waving from his sleigh, on a see-through
   background (Plugin Manager and the top of the settings page).
 * `pluginInfo.json`'s `iconURL` points at this fork's `icon.png`.

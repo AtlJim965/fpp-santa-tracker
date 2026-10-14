@@ -2048,8 +2048,24 @@ def main():
                     cv = render(st)
                     png = cv.png()
                     if a.once or mode == "both":
-                        show_image(cv, map_secs + 3)
-                        time.sleep(map_secs)
+                        # map for map_secs, redrawn every `refresh` seconds so
+                        # Santa and the countdown keep moving (Show Once,
+                        # Preview, and the map part of "map then text")
+                        end = time.time() + map_secs
+                        shown = None
+                        while True:
+                            if png != shown:
+                                show_image(cv, max(0.0, end - time.time()) + 3)
+                                shown = png
+                            left = end - time.time()
+                            if left <= 0.5:
+                                break
+                            time.sleep(min(refresh, left))
+                            if end - time.time() <= 0.5:
+                                break
+                            st = santa_status(load_route(), now_ms())
+                            cv = render(st)
+                            png = cv.png()
                     else:
                         # only reload the picture when it changes (reloading
                         # makes FPP blank the panel for a moment)
