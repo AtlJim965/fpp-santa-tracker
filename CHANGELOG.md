@@ -64,6 +64,10 @@ heading when the change is released.
 
 ### Changed
 
+* The **Show** setting (Display) is now called **What to show on the matrix**,
+  and the note under **Scrolling text** says it is only used when that is
+  **Scrolling text** or **Map, then scrolling text**, so it is clearer where
+  scrolling text is turned on.
 * `pluginInfo.json` declares an empty `dependencies` block (no extra
   packages, Python modules, scripts or plugins needed), ready for FPP 11,
   which will require it.

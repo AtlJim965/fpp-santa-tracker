@@ -179,12 +179,15 @@ The per-line colors:
 | Setting | Key | Default | Notes |
 |---|---|---|---|
 | Overlay model | `ModelName` | first model | The Pixel Overlay Model to draw on |
-| Show | `DisplayMode` | Map with info panel | Or **Scrolling text** / **Map, then scrolling text** |
+| What to show on the matrix | `DisplayMode` | Map with info panel | Or **Scrolling text** / **Map, then scrolling text**. This is where scrolling text is turned on. |
 | Map seconds | `MapSeconds` | 20 | How long the map shows before the text, in "Map, then scrolling text" mode |
 | Update every (seconds) | `RefreshSeconds` | 30 | Under the preview, next to **Run live from this moment**. How often the matrix redraws (5-3600): the running display, **Show on matrix**, **Show Once** and the map part of "Map, then scrolling text". 15 is a good choice for Christmas Eve. The matrix only reloads when the picture has changed. |
 | Start the display automatically when FPP starts | `AutoStart` | off | |
 
 ### Scrolling text
+
+Only used when **Display > What to show on the matrix** is **Scrolling
+text** or **Map, then scrolling text**.
 
 | Setting | Key | Default |
 |---|---|---|
@@ -435,7 +438,7 @@ python3 santa_tracker.py --preview map.png      save a picture of the panel and 
 python3 santa_tracker.py --dry-run              print the scrolling-text message only
 ```
 
-* `--mode map|text|both` overrides **Show**.
+* `--mode map|text|both` overrides **What to show on the matrix**.
 * `--at` takes a moment key (`now`, `d30`, `d14`, `d7`, `d3`, `d1`,
   `eve_takeoff`, `eve_noon`, `eve_6pm`, `eve_9pm`, `home_soon`, `home_here`,
   `landed`), a moment name from the table above, or a date and time such as

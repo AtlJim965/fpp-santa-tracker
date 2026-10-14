@@ -224,7 +224,7 @@ $fppsantatrackerBoot = array(
         <div class="row g-2">
           <div class="col-12 col-sm-6"><label class="form-label mb-1" for="sModel">Overlay model</label>
             <select class="form-select" data-key="ModelName" id="sModel"><option value="">(first model)</option></select></div>
-          <div class="col-12 col-sm-6"><label class="form-label mb-1" for="sMode">Show</label>
+          <div class="col-12 col-sm-6"><label class="form-label mb-1" for="sMode">What to show on the matrix</label>
             <select class="form-select" data-key="DisplayMode" id="sMode">
               <option value="map">Map with info panel</option>
               <option value="text">Scrolling text</option>
@@ -241,8 +241,8 @@ $fppsantatrackerBoot = array(
       </div></div>
 
       <div class="card mb-3"><div class="card-body">
-        <h3 class="h5 card-title">Scrolling text <button type="button" class="fst-q" data-bs-toggle="tooltip" data-bs-placement="top" title="Font, size, speed and colors of the scrolling message, used when Show includes scrolling text." aria-label="About Scrolling text">?</button></h3>
-        <p class="small text-body-secondary">Used when Show is set to scrolling text. FPP draws this text itself, so the preview shows the message it will scroll rather than a picture.</p>
+        <h3 class="h5 card-title">Scrolling text <button type="button" class="fst-q" data-bs-toggle="tooltip" data-bs-placement="top" title="Font, size, speed and colors of the scrolling message, only used when What to show on the matrix (in Display) includes scrolling text." aria-label="About Scrolling text">?</button></h3>
+        <p class="small text-body-secondary">Only used when <b>Display &gt; What to show on the matrix</b> is <b>Scrolling text</b> or <b>Map, then scrolling text</b>. FPP draws this text itself, so the preview shows the message it will scroll rather than a picture.</p>
         <div class="row g-2">
           <div class="col-12 col-sm-6"><label class="form-label mb-1" for="sFont">Font</label>
             <select class="form-select" data-key="TextFont" id="sFont"></select></div>
