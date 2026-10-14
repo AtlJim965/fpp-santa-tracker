@@ -9,6 +9,12 @@
     "iconURL": "https://raw.githubusercontent.com/bobreese/fpp-santa-tracker/main/icon.png",
     "allowUpdates": 1,
     "releaseNotesStyle": "gitHistory",
+    "dependencies": {
+        "packages": [],
+        "python": [],
+        "scripts": [],
+        "plugins": []
+    },
     "versions": [
         {
             "minFPPVersion": "9.0",

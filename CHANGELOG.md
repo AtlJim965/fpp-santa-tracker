@@ -57,6 +57,9 @@ heading when the change is released.
 
 ### Changed
 
+* `pluginInfo.json` declares an empty `dependencies` block (no extra
+  packages, Python modules, scripts or plugins needed), ready for FPP 11,
+  which will require it.
 * Passes fpp-data's plugin checks with no findings: the install script stops
   on an unexpected error (`set -e`, with the steps that may fail harmlessly
   guarded), the command scripts' shared helper has a `#!/bin/bash` line, and
