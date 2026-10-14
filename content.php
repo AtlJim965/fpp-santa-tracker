@@ -104,8 +104,6 @@ $fppsantatrackerBoot = array(
           <div class="col-12 col-sm-6"><label class="form-label mb-1" for="sView">Map view</label>
             <select class="form-select" data-key="MapView" id="sView">
               <option value="auto">Zoom in when Santa is near</option>
-              <option value="world">Always the whole world</option>
-              <option value="local">Always zoomed in</option>
               <option value="globe">Globe (zoom in when Santa is near)</option>
             </select></div>
           <div class="col-12 col-sm-6" id="sZoomWrap"><label class="form-label mb-1" for="sZoom">Zoomed-in area</label>
@@ -449,12 +447,10 @@ $fppsantatrackerBoot = array(
     $('#sSingleWrap').classList.toggle('d-none', mode !== 'single');
     $('#sLineColors').classList.toggle('d-none', mode !== 'lines');
     $('#sHomeStop').classList.toggle('d-none', !$('#sHome').checked);
-    $('#sZoomWrap').classList.toggle('d-none', $('#sView').value === 'world');
-    $('#sShapeWrap').classList.toggle('d-none', $('#sView').value === 'local' || $('#sView').value === 'globe');
+    $('#sShapeWrap').classList.toggle('d-none', $('#sView').value === 'globe');
     $('#sGlobeWrap').classList.toggle('d-none', $('#sView').value !== 'globe');
     $('#sGlobeOceanWrap').classList.toggle('d-none', $('#sView').value !== 'globe');
-    $('#sZTextWrap').classList.toggle('d-none', $('#sView').value === 'world');
-    $('#sBorderWrap').classList.toggle('d-none', $('#sView').value === 'world' || !$('#sBorders').checked);
+    $('#sBorderWrap').classList.toggle('d-none', !$('#sBorders').checked);
     drawSwatches();
   }
 
