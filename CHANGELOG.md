@@ -11,6 +11,12 @@ heading when the change is released.
 
 ### Added
 
+* **Globe** map view: a round globe that turns to follow Santa on Christmas
+  Eve and slowly spins while he is at the North Pole, with the night side
+  shaded from the sun's real position. It switches to the zoomed-in map when
+  Santa is near your town. New settings **Globe night-side brightness** and
+  **Globe ocean**.
+
 * **World map shape** setting. **Fill the panel** (the new default) stops the
   world map at 60°S and fills the panel's height, so Antarctica and the
   empty Southern Ocean no longer take up the bottom third of tall panels.

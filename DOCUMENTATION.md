@@ -115,9 +115,11 @@ coordinates. For example, Arlington Heights, IL shows "Chicago, Illinois, USA
 | Setting | Key | Default | Notes |
 |---|---|---|---|
 | Show Santa as | `SantaMarker` | Sleigh and reindeer | Or **A dot**. Small maps (under 40x16) always use the dot. |
-| Map view | `MapView` | Zoom in when Santa is near | Or **Always the whole world** / **Always zoomed in** |
+| Map view | `MapView` | Zoom in when Santa is near | Or **Always the whole world** / **Always zoomed in** / **Globe (zoom in when Santa is near)** |
 | Zoomed-in area | `LocalZoom` | Medium (about 2,500 mi) | Wide (about 4,500 mi) or Close (about 1,200 mi) |
 | World map shape | `WorldShape` | Fill the panel | Or **True proportions**. See [How the map works](#how-the-map-works). |
+| Globe night-side brightness (%) | `GlobeNight` | 50 | Globe only: how bright the night side is (0-100; 100 = no night shading) |
+| Globe ocean | `GlobeOceanColor` | `#002D78` | Globe only. The space around the globe is black. |
 | Text beside the zoomed-in map | `ZoomedText` | Small (bigger map) | Or **Normal**. See [What the info panel shows](#what-the-info-panel-shows). |
 | Land | `LandColor` | `#00DC46` | |
 | Ocean | `OceanColor` | `#000000` | |
@@ -245,7 +247,20 @@ zoomed-in view is centred on your town and shows lakes and state and country
 borders. With **Zoom in when Santa is near**, the map switches to the zoomed
 view while Santa is inside that area and back to the world when he leaves.
 
-**Projection.** Both views use a Mercator projection, so shapes look like
+**Globe.** With **Map view: Globe (zoom in when Santa is near)**, the world
+map is replaced by a round globe, as tall as the panel and tilted to show the
+northern hemisphere. On Christmas Eve it turns to keep Santa in the middle,
+so it rotates as he travels west; before and after, while he is at the North
+Pole, it slowly spins (one turn every 18 minutes, a step each time the
+display updates). The night side is shaded from the sun's real position, so
+you can see Santa riding the edge of the night (he visits each place around
+midnight). **Globe night-side brightness** sets how dark the night side is
+and **Globe ocean** its ocean color. When Santa is near your town the map
+switches to the zoomed-in view, as with **Zoom in when Santa is near**. A
+new globe takes about half a second to draw on a fast computer (a few
+seconds on a Raspberry Pi); it is reused while the globe hasn't turned.
+
+**Projection.** The world and zoomed-in views use a Mercator projection, so shapes look like
 the maps people know. The map data is the public-domain Natural Earth 1:50m
 coastline, with lakes such as the Great Lakes cut out.
 
