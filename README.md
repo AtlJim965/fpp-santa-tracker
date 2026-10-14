@@ -15,7 +15,7 @@ Your town can be added as one of Santa's stops ("FLYING TO: YOUR TOWN" ...
 Santa's route is built in (about 580 cities, each reached around its local
 midnight), so it needs no internet on Christmas Eve.
 
-Requires FPP 10 or newer. Uses FPP's own Python 3; no extra packages.
+Requires FPP 9 or newer. Uses FPP's own Python 3; no extra packages.
 
 ## Install
 
