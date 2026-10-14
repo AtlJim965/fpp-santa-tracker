@@ -52,6 +52,9 @@ heading when the change is released.
 
 ### Changed
 
+* Documentation: troubleshooting for a display that hardly seems to move and
+  for a wrong FPP clock; the README mentions the globe, the built-in route,
+  **Run live from this moment** and **Update every**.
 * Globe: Santa now flies across the face of the globe, and the globe only
   turns (and tilts north or south) when he is about a third of the way to
   the edge, instead of keeping him pinned in the middle, so you can see him

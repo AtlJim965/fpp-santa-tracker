@@ -26,8 +26,9 @@ introduction see [README.md](README.md). For what changed and when, see the
 Santa Tracker shows Santa's position on a Pixel Overlay Model (an LED matrix)
 in FPP. It can show:
 
-* **a map with an info panel** - a map of the world (or of your area when
-  Santa is close) with Santa, his trail and your town on the left, and text
+* **a map with an info panel** - a map of the world, or a globe that turns
+  to follow Santa (either one zooms in on your area when Santa is close),
+  with Santa, his trail and your town on the left, and text
   on the right: a countdown before Christmas Eve, then "NOW IN" / "FLYING TO",
   the distance from your town and the gifts delivered
 * **a scrolling text message**, such as "Santa is flying to Seville, Spain -
@@ -358,7 +359,7 @@ downloads:
 | Path | What it is |
 |---|---|
 | `config/plugin.fpp-santa-tracker` | Your settings. Kept on uninstall. |
-| `plugindata/fpp-santa-tracker/` | The saved route and map data, small status notes while the display runs, and the overlay model's state from before the plugin first drew on it |
+| `plugindata/fpp-santa-tracker/` | The saved map data, small status notes while the display runs, and the overlay model's state from before the plugin first drew on it |
 | `images/santa_map_*.png` | The current map picture, which FPP's overlay Image effect reads. Old frames are deleted automatically. |
 | `logs/plugin-fpp-santa-tracker.log` | The plugin's log (Status/Control > Logs) |
 
@@ -382,13 +383,30 @@ trail color that stands out more on your LEDs.
 
 **Show on matrix does nothing the second time.** A Show on matrix that is
 still running isn't replaced by a new one yet. Click **Stop**, or wait for
-**Seconds** to run out, then press it again. Changing **Preview moment**
+**Show for (seconds)** to run out, then press it again. Changing **Preview moment**
 only updates the browser preview.
 
 **The matrix stays black after stopping.** Stopping puts the overlay model
 back the way it was before the plugin first drew on it. If the model was
 switched on before that, it stays on: switch it off under Input/Output Setup
 > Pixel Overlay Models.
+
+**Santa hardly seems to move.** The matrix redraws every **Update every
+(seconds)** (under the preview, next to **Run live from this moment**; 15 is
+good for Christmas Eve), not every **Show for (seconds)**, which is only how
+long **Show on matrix** plays. A running display reads its settings when it
+starts, so click **Stop** and **Start Display** after changing it. The matrix
+is only reloaded when the picture changed, and some hops are only a few LEDs
+long on a big map (islands, or Santa parked at a stop for a minute), so at
+those times only the miles or the countdown change. To watch it on any day,
+pick a **Preview moment** and press **Run live from this moment**.
+
+**The countdown or Santa's position is wrong.** The plugin uses the FPP's
+clock. Check it with `date` on the FPP (or the time at the top of FPP's
+pages); a Raspberry Pi has no clock battery and can come back from a power
+cut with the wrong date. Turn on NTP under **Settings > Time** (or run
+`sudo timedatectl set-ntp true`). A wrong date also makes downloads from
+GitHub fail with "certificate has expired".
 
 **The map shows no land.** The map data hasn't downloaded yet. Check that FPP
 has internet access, and look in the plugin log.
