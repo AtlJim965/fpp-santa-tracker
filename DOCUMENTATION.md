@@ -117,6 +117,7 @@ coordinates. For example, Arlington Heights, IL shows "Chicago, Illinois, USA
 | Show Santa as | `SantaMarker` | Sleigh and reindeer | Or **A dot**. Small maps (under 40x16) always use the dot. |
 | Map view | `MapView` | Zoom in when Santa is near | Or **Always the whole world** / **Always zoomed in** |
 | Zoomed-in area | `LocalZoom` | Medium (about 2,500 mi) | Wide (about 4,500 mi) or Close (about 1,200 mi) |
+| World map shape | `WorldShape` | Fill the panel | Or **True proportions**. See [How the map works](#how-the-map-works). |
 | Land | `LandColor` | `#00DC46` | |
 | Ocean | `OceanColor` | `#000000` | |
 | My location | `HomeColor` | `#FFFFFF` | The small + marking your town |
@@ -231,7 +232,13 @@ automatically when FPP starts**.
 
 ## How the map works
 
-**Views.** The world view shows the whole world from 72°N southwards. The
+**Views.** The world view shows the whole world from 72°N southwards. With
+**World map shape: Fill the panel** (the default) it stops at 60°S, south of
+everywhere Santa visits, and fills the map's height, so Antarctica and the
+empty Southern Ocean don't take up the bottom of the panel. On a tall panel
+this stretches shapes vertically (about 1.5 times on a 384x256 panel); on a
+wide, short panel it changes little. **True proportions** keeps the shapes
+exact and shows as far south as the panel's height allows. The
 zoomed-in view is centred on your town and shows lakes and state and country
 borders. With **Zoom in when Santa is near**, the map switches to the zoomed
 view while Santa is inside that area and back to the world when he leaves.

@@ -99,6 +99,7 @@ DEFAULTS = {
     "ShowTrail": "1",
     "MapView": "auto",                  # auto | world | local
     "LocalZoom": "medium",              # wide | medium | close
+    "WorldShape": "fill",               # fill | true (world map)
     "ShowBorders": "1",                 # state/country lines on the zoomed map
     "BorderColor": "#006428",
     # right-hand panel colors
@@ -587,6 +588,7 @@ MASK_FILE = "landmask_v2_4096.bin.z"
 BORDER_FILE = "borders_v2.json"
 LOCAL_SPANS = {"wide": 90.0, "medium": 50.0, "close": 25.0}   # degrees across
 WORLD_TOP_LAT = 72.0
+WORLD_BOTTOM_LAT = -60.0     # Santa's route stays north of this
 
 
 def _download_ne(name):
@@ -733,12 +735,16 @@ def _merc(lat):
 class MapView:
     """Mercator view of `span` degrees of longitude across `w` pixels."""
 
-    def __init__(self, name, w, h, lon_center, span, lat_center=None, top_lat=None):
+    def __init__(self, name, w, h, lon_center, span, lat_center=None, top_lat=None,
+                 bottom_lat=None):
         self.name, self.w, self.h = name, w, h
         self.lonc, self.span = lon_center, span
-        self.k = w / math.radians(span)              # pixels per radian
+        self.k = w / math.radians(span)              # pixels per radian (vertical)
         if top_lat is not None:
             self.ytop = _merc(top_lat)
+            if bottom_lat is not None:
+                # stretch (or squeeze) vertically so top..bottom fills the height
+                self.k = h / (self.ytop - _merc(bottom_lat))
         else:
             self.ytop = _merc(lat_center) + (h / self.k) / 2
 
@@ -757,11 +763,18 @@ class MapView:
 
     def key(self):
         return (self.name, self.w, self.h, round(self.lonc, 4), round(self.span, 4),
-                round(self.ytop, 6))
+                round(self.ytop, 6), round(self.k, 6))
 
 
 def world_view(w, h):
-    return MapView("world", w, h, 0.0, 360.0, top_lat=WORLD_TOP_LAT)
+    """The whole world. 'fill' fits 72N..60S to the map's height, leaving out
+    the far south (Antarctica, the empty Southern Ocean) so the land Santa
+    visits gets the whole panel; shapes are stretched or squeezed vertically
+    to fit. 'true' keeps Mercator's proportions from 72N down."""
+    if cfg_str("WorldShape").lower() == "true":
+        return MapView("world", w, h, 0.0, 360.0, top_lat=WORLD_TOP_LAT)
+    return MapView("world", w, h, 0.0, 360.0, top_lat=WORLD_TOP_LAT,
+                   bottom_lat=WORLD_BOTTOM_LAT)
 
 
 def local_view(w, h):

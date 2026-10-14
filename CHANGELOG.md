@@ -11,6 +11,10 @@ heading when the change is released.
 
 ### Added
 
+* **World map shape** setting. **Fill the panel** (the new default) stops the
+  world map at 60°S and fills the panel's height, so Antarctica and the
+  empty Southern Ocean no longer take up the bottom third of tall panels.
+  **True proportions** keeps the previous map.
 * `DOCUMENTATION.md`: a full reference for the settings, commands, map,
   files and troubleshooting, and this change log
 

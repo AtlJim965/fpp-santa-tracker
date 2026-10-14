@@ -113,6 +113,11 @@ $fppsantatrackerBoot = array(
               <option value="medium">Medium (about 2,500 mi)</option>
               <option value="close">Close (about 1,200 mi)</option>
             </select></div>
+          <div class="col-12 col-sm-6" id="sShapeWrap"><label class="form-label mb-1" for="sShape">World map shape</label>
+            <select class="form-select" data-key="WorldShape" id="sShape">
+              <option value="fill">Fill the panel (leave out Antarctica)</option>
+              <option value="true">True proportions</option>
+            </select></div>
         </div>
         <div class="row g-2">
           <div class="col-6 col-sm-4" data-color="LandColor" data-label="Land"></div>
@@ -431,6 +436,7 @@ $fppsantatrackerBoot = array(
     $('#sLineColors').classList.toggle('d-none', mode !== 'lines');
     $('#sHomeStop').classList.toggle('d-none', !$('#sHome').checked);
     $('#sZoomWrap').classList.toggle('d-none', $('#sView').value === 'world');
+    $('#sShapeWrap').classList.toggle('d-none', $('#sView').value === 'local');
     $('#sBorderWrap').classList.toggle('d-none', $('#sView').value === 'world' || !$('#sBorders').checked);
     drawSwatches();
   }
