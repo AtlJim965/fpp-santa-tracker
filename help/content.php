@@ -144,9 +144,10 @@
   <dl>
     <dt>Overlay model</dt>
     <dd>The Pixel Overlay Model (your matrix) to draw on.</dd>
-    <dt>Show</dt>
+    <dt>What to show on the matrix</dt>
     <dd><b>Map with info panel</b> (default), <b>Scrolling text</b>, or
-      <b>Map, then scrolling text</b>.</dd>
+      <b>Map, then scrolling text</b> (the map for <b>Map seconds</b>, then the
+      message). This is where scrolling text is turned on.</dd>
     <dt>Map seconds</dt>
     <dd>How long the map shows for <b>Show Once</b>, and before the text in
       <b>Map, then scrolling text</b>. Default 20.</dd>
@@ -155,8 +156,9 @@
   </dl>
 
   <h3 id="fsth-text">Scrolling text</h3>
-  <p>Used when <b>Show</b> includes scrolling text. FPP draws this text itself,
-    so the preview shows the message rather than a picture.</p>
+  <p>Only used when <b>Display &gt; What to show on the matrix</b> is
+    <b>Scrolling text</b> or <b>Map, then scrolling text</b>. FPP draws this
+    text itself, so the preview shows the message rather than a picture.</p>
   <dl>
     <dt>Font, Font size and Scroll speed</dt>
     <dd>Defaults: FreeSansBold, 24 and 40.</dd>
