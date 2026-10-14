@@ -11,6 +11,11 @@ heading when the change is released.
 
 ### Added
 
+* **FPP 9 support**: the Plugin Manager now offers the plugin on FPP 9 as
+  well as FPP 10 (tested on FPP 9: settings page, commands, Show on matrix,
+  Start/Stop, Run live with the globe, uninstall).
+* **Release Notes** link in FPP's Plugin Manager for updates (the commits
+  since the installed version).
 * **Built-in route**: Santa's route is now part of the plugin (`route.json`,
   about 580 cities built from public-domain Natural Earth data by
   `tools/make_route.py`) instead of Google's Santa Tracker route, so nothing
@@ -52,6 +57,10 @@ heading when the change is released.
 
 ### Changed
 
+* Passes fpp-data's plugin checks with no findings: the install script stops
+  on an unexpected error (`set -e`, with the steps that may fail harmlessly
+  guarded), the command scripts' shared helper has a `#!/bin/bash` line, and
+  the privacy note about the map download is shorter.
 * Documentation: troubleshooting for a display that hardly seems to move and
   for a wrong FPP clock; the README mentions the globe, the built-in route,
   **Run live from this moment** and **Update every**.

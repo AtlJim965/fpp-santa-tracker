@@ -41,7 +41,7 @@ one of his stops, so the matrix shows "FLYING TO: YOUR TOWN" and then
 
 ## Requirements
 
-* FPP 10 or newer
+* FPP 9 or newer
 * A Pixel Overlay Model for the matrix (Input/Output Setup > Pixel Overlay
   Models). A panel about 128x64 or bigger shows the map and the panel
   together best.
