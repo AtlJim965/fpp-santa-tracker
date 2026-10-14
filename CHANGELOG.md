@@ -37,6 +37,8 @@ heading when the change is released.
 * The bottom lines of the "NOW IN" / "FLYING TO" panel are wrapped instead
   of cut off at the right edge, and on short panels whole lines are left
   out (gifts first) instead of running off the bottom.
+* A word that only just fits a line no longer has its comma split onto the
+  next line ("WISCONSIN" / "USA" instead of "WISCONSIN" / ", USA").
 
 ## 2026-10-13
 

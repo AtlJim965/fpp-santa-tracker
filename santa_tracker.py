@@ -1046,6 +1046,10 @@ def wrap(s, width, hard=None):
     hard = max(hard or width, width)
     lines, cur = [], ""
     for word in font_text(s).split():
+        if len(word) > width and word[-1] in ",;" and len(word) - 1 <= hard:
+            # a word this long gets a line to itself, so its comma would end
+            # the line: drop it rather than split it off ("WISCONSIN" / ", USA")
+            word = word[:-1]
         while len(word) > hard:
             if cur:
                 lines.append(cur)
