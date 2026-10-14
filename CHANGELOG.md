@@ -11,6 +11,12 @@ heading when the change is released.
 
 ### Added
 
+* **Run live from this moment** (under the preview): starts the running
+  display as if it were the chosen preview moment, for testing, until
+  **Stop**, without changing the FPP's clock. The start button shows
+  **Running (simulated: ...)** while it runs. The **Santa Tracker - Start**
+  command has a matching optional **Simulate time** option (default **Real
+  time**).
 * **Globe** map view: a round globe that turns to follow Santa on Christmas
   Eve and slowly spins while he is at the North Pole, with the night side
   shaded from the sun's real position. It switches to the zoomed-in map when
@@ -39,6 +45,8 @@ heading when the change is released.
 
 ### Changed
 
+* The preview's **Seconds** box is now labelled **Show for (seconds)**: how
+  long **Show on matrix** plays before it turns the matrix off.
 * **Show on matrix**, **Show Once** and the map part of **Map, then
   scrolling text** redraw every **Update every** seconds while they show,
   instead of holding one still picture, so Santa moves and the countdown

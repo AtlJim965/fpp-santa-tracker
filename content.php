@@ -35,7 +35,7 @@ $fppsantatrackerBoot = array(
         <div class="card">
           <div class="card-body">
             <h3 class="h5 card-title">Preview</h3>
-            <p class="small text-body-secondary mb-2">Updates as you change settings. Nothing is sent to the matrix until you press <b>Show on matrix</b>.</p>
+            <p class="small text-body-secondary mb-2">Updates as you change settings. Nothing is sent to the matrix until you press <b>Show on matrix</b> or <b>Run live from this moment</b>.</p>
             <div class="fst-preview bg-black rounded p-2"><canvas id="sCanvas" width="960" height="320"></canvas></div>
             <div class="row g-2 align-items-end mt-1">
               <div class="col-12 col-md">
@@ -43,13 +43,18 @@ $fppsantatrackerBoot = array(
                 <select class="form-select" id="sMoment"><option value="now">Right now</option></select>
               </div>
               <div class="col-6 col-md-3">
-                <label class="form-label mb-1" for="sShowSecs">Seconds</label>
+                <label class="form-label mb-1" for="sShowSecs" title="Show on matrix plays this long, then turns the matrix off">Show for (seconds)</label>
                 <input type="number" class="form-control" id="sShowSecs" min="3" max="600" value="20">
               </div>
               <div class="col-6 col-md-auto">
                 <button type="button" class="btn btn-primary w-100" id="sShow"
-                        title="Saves your settings, then shows this moment on the matrix">Show on matrix</button>
+                        title="Saves your settings, then plays this moment on the matrix for the seconds set, then turns the matrix off">Show on matrix</button>
               </div>
+            </div>
+            <div class="mt-2">
+              <button type="button" class="btn btn-outline-secondary btn-sm" id="sSimStart"
+                      title="For testing: starts the running display as if it were this moment. It keeps going until you press Stop.">Run live from this moment</button>
+              <span class="small text-body-secondary ms-1">Testing: the running display, as if it were this moment, until <b>Stop</b>.</span>
             </div>
             <div class="form-check mt-2">
               <input class="form-check-input" type="checkbox" id="sLed" checked>
@@ -585,8 +590,9 @@ $fppsantatrackerBoot = array(
           (lastStatus && !lastStatus.ok ? (lastStatus.error || 'error') : JSON.stringify(lastStatus)), false);
       }
       // Start button: blue "Start Display" when off, green "Running" while on
-      sb.className = 'btn ' + (on ? 'btn-success' : 'btn-primary');
-      sb.textContent = on ? 'Running' : 'Start Display';
+      var sim = on && j.simulated;
+      sb.className = 'btn ' + (sim ? 'btn-warning' : on ? 'btn-success' : 'btn-primary');
+      sb.textContent = sim ? 'Running (simulated: ' + j.simulated + ')' : on ? 'Running' : 'Start Display';
       sb.title = on ? 'The display is running. Click to restart it with your saved settings.'
         : "Runs until you press Stop (same as the 'Santa Tracker - Start' command)";
       if (showing && !pollSoon) pollSoon = setTimeout(function () { pollSoon = null; pollStatus(); }, 3000);
@@ -669,6 +675,19 @@ $fppsantatrackerBoot = array(
       startingUntil = Date.now() + 30000;
       action('start', ['Saved setting']).then(function (j) {
         if (j.ok) toast('Display started.', true);
+        else { startingUntil = 0; pollStatus(); }
+      });
+    });
+  });
+  $('#sSimStart').addEventListener('click', function () {
+    var at = momentCommandName($('#sMoment').value);
+    (isDirty() ? save() : Promise.resolve(true)).then(function (ok) {
+      if (!ok) return;
+      var sb = $('#sStart');
+      sb.className = 'btn btn-success'; sb.textContent = 'Starting\u2026';
+      startingUntil = Date.now() + 30000;
+      action('start', ['Saved setting', at]).then(function (j) {
+        if (j.ok) toast('Display running as if it were: ' + at + '. Press Stop when you are done testing.', true);
         else { startingUntil = 0; pollStatus(); }
       });
     });

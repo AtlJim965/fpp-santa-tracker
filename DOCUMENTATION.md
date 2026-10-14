@@ -209,11 +209,21 @@ same moments are available to the **Santa Tracker - Preview** command.
 | Santa in my town | While Santa is in your town |
 | Christmas morning | Santa back home |
 
-**Show on matrix** saves your settings, then shows the chosen moment on the
-matrix for **Seconds** (3-600). The clock keeps running from that moment and
-the matrix redraws every **Update every** seconds, so a preview of
-"Approaching my town" plays out: "DEST IN 1 MIN", then "HE'S HERE!". **LED look** draws the preview as round LEDs;
-it only changes the picture in the browser.
+**Show on matrix** saves your settings, then plays the chosen moment on the
+matrix for **Show for (seconds)** (3-600) and then turns the matrix off. The
+clock keeps running from that moment and the matrix redraws every **Update
+every** seconds, so a preview of "Approaching my town" plays out: "DEST IN 1
+MIN", then "HE'S HERE!".
+
+**Run live from this moment** is for testing the running display: it starts
+**Start Display** as if it were the chosen moment, and it keeps going (and
+updating every **Update every** seconds) until you press **Stop**. While it
+runs, the start button shows **Running (simulated: ...)** in yellow. Your
+FPP's clock is not changed. Press **Stop** when you're done, then **Start
+Display** for the real time.
+
+**LED look** draws the preview as round LEDs; it only changes the picture in
+the browser.
 
 ## FPP Commands
 
@@ -221,7 +231,7 @@ Use these in playlists, schedules, buttons and FPP's other command lists.
 
 | Command | Arguments | What it does |
 |---|---|---|
-| Santa Tracker - Start | Display | Starts the display. It keeps updating until **Stop**. |
+| Santa Tracker - Start | Display, Simulate time | Starts the display. It keeps updating until **Stop**. Leave **Simulate time** at **Real time** for the show; another choice runs it as if it were that [preview moment](#preview-moments), for testing. |
 | Santa Tracker - Stop | none | Stops the display and any Show Once or Preview, clears the model and puts it back the way it was |
 | Santa Tracker - Show Once | Display, Seconds | Shows Santa's current position for that many seconds, then stops |
 | Santa Tracker - Preview | Moment, Seconds | Shows a [preview moment](#preview-moments) for that many seconds |

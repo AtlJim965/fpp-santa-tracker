@@ -1915,8 +1915,14 @@ def main():
         # a Show Once / Preview that interrupted the running display hands the
         # matrix back to it afterwards, so the display still counts as running
         resuming = any(n.get("resuming") for n in once)
+        sim = ""
+        for n in loop:
+            argv = n.get("argv") or []
+            if "--at" in argv[:-1]:
+                sim = argv[argv.index("--at") + 1]       # a test run of the live display
         print(json.dumps({"ok": True, "running": bool(loop) or resuming,
-                          "showing": bool(once), "pids": [n["pid"] for n in notes]}))
+                          "showing": bool(once), "simulated": sim,
+                          "pids": [n["pid"] for n in notes]}))
         return 0
     load_settings(a.settings)
 
