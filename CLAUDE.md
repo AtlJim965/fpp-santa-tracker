@@ -31,3 +31,9 @@ anything outside its own folder, update both scripts in the same change:
    must be back in its original state and no copy may still be running.
 5. Update the "Files it writes and what it changes" section of README.md and
    the `privacy` block in pluginInfo.json if any of this changed.
+
+## On every change: update the docs
+
+Add a line to `CHANGELOG.md` under **Unreleased** describing what a user will
+notice. If a setting, command, file or behaviour changed, update
+`DOCUMENTATION.md` too (and README.md where it covers the same thing).
