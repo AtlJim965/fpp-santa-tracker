@@ -41,6 +41,7 @@ heading when the change is released.
 
 * New plugin icon: Santa waving from his sleigh, on a see-through
   background (Plugin Manager and the top of the settings page).
+* `pluginInfo.json`'s `iconURL` points at this fork's `icon.png`.
 * **Map view** has two choices: **Zoom in when Santa is near** (world map)
   and **Globe (zoom in when Santa is near)**. **Always the whole world** and
   **Always zoomed in** were removed; a saved setting using either now zooms
