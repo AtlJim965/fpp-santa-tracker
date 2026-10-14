@@ -21,6 +21,8 @@ $fppsantatrackerBoot = array(
   <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
     <h2 class="h3 mb-0 me-2">Santa Tracker</h2>
     <div class="ms-auto d-flex gap-2">
+      <button type="button" class="btn btn-outline-secondary" id="sHelp"
+              title="What each setting does (or press F1)">Help</button>
       <button type="button" class="btn btn-primary" id="sStart"
               title="Runs until you press Stop (same as the 'Santa Tracker - Start' command)">Start Display</button>
       <button type="button" class="btn btn-danger" id="sStop">Stop</button>
@@ -653,6 +655,15 @@ $fppsantatrackerBoot = array(
   $('#sMoment').addEventListener('change', runPreview);
   $('#sLed').addEventListener('change', function () { if (lastPreview) drawPng(lastPreview); });
   $('#sSave').addEventListener('click', save);
+  // FPP's help window (F1) shows help/content.php; open it on its own if
+  // this FPP has no help window
+  $('#sHelp').addEventListener('click', function () {
+    if (typeof DisplayHelp === 'function' && typeof helpPage !== 'undefined') {
+      DisplayHelp();
+    } else {
+      window.open('plugin.php?plugin=fpp-santa-tracker&page=help/content.php', '_blank');
+    }
+  });
   $('#sUseFpp').addEventListener('click', function () {
     Promise.all([fppSetting('Latitude'), fppSetting('Longitude'), fppSetting('TimeZone')]).then(function (v) {
       if (!v[0] || !v[1] || isNaN(parseFloat(v[0])) || isNaN(parseFloat(v[1]))) {

@@ -89,6 +89,9 @@ The buttons at the top:
   turns green and shows Running.
 * **Stop** - stops the display, clears the model and puts it back the way it
   was before the plugin drew on it.
+* **Help** - opens a help page in FPP's help window (or press **F1**) that
+  describes each setting, with links at the top to each section and the
+  preview last.
 
 The setting names in `code` are the keys stored in
 `config/plugin.fpp-santa-tracker`.
