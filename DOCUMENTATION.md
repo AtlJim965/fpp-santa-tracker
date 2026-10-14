@@ -13,6 +13,7 @@ introduction see [README.md](README.md). For what changed and when, see the
 * [The settings page](#the-settings-page)
 * [Preview moments](#preview-moments)
 * [FPP Commands](#fpp-commands)
+* [Santa's route](#santas-route)
 * [How the map works](#how-the-map-works)
 * [What the info panel shows](#what-the-info-panel-shows)
 * [Files and downloads](#files-and-downloads)
@@ -33,7 +34,7 @@ in FPP. It can show:
   he reaches Your Town in 6 hours 48 min - 4,187 mi from Your Town"
 * **the map, then the scrolling text**, one after the other
 
-Santa's route comes from Google's Santa Tracker. Your town can be added as
+Santa's route is built into the plugin: about 580 cities around the world, each reached around its local midnight (see [Santa's route](#santas-route)). Your town can be added as
 one of his stops, so the matrix shows "FLYING TO: YOUR TOWN" and then
 "HE'S HERE!".
 
@@ -246,6 +247,28 @@ A typical setup: schedule **Santa Tracker - Start** at dusk and **Santa
 Tracker - Stop** when the show ends, or tick **Start the display
 automatically when FPP starts**.
 
+## Santa's route
+
+Santa's route is part of the plugin (`route.json`), so nothing has to be
+downloaded for it, even on Christmas Eve. It was built from Natural Earth's
+public-domain list of the world's cities by `tools/make_route.py`:
+
+* about 580 stops: the biggest cities, kept at least 220 km apart so they are
+  spread around the world, plus the biggest place of every country and every
+  US state, Canadian province and Australian state, so remote places such as
+  Alaska, the Yukon, Greenland, Iceland, Svalbard and the Pacific islands get
+  a visit too
+* Santa reaches each city within an hour of its local midnight. He sweeps
+  west from the date line an hour of the night at a time, always flying on to
+  the nearest city he hasn't visited, at a steady speed within each hour
+* he takes off from the North Pole at about 12:00 UTC on December 24 (6 AM
+  Chicago time) and is back about 12:50 UTC on Christmas morning
+* gifts delivered grow with each city's population, to about 7.6 billion
+
+To change the route (more or fewer stops, different spacing), edit the
+numbers at the top of `tools/make_route.py` and run it with Natural Earth's
+`ne_10m_populated_places_simple.geojson`; it writes a new `route.json`.
+
 ## How the map works
 
 **Views.** The world view shows the whole world from 72°N southwards. With
@@ -324,8 +347,6 @@ screens, and the world map, keep the normal text. This has no effect when
 **Downloads.** Nothing about you or your show is sent anywhere. The plugin
 downloads:
 
-* Google's public Santa Tracker route, from `firebasestorage.googleapis.com`,
-  at most every 6 hours
 * once, the Natural Earth map data (coastlines, lakes, borders), from
   `raw.githubusercontent.com`, or `cdn.jsdelivr.net` /
   `d2ad6b4ur7yvpq.cloudfront.net` if that fails

@@ -11,6 +11,13 @@ heading when the change is released.
 
 ### Added
 
+* **Built-in route**: Santa's route is now part of the plugin (`route.json`,
+  about 580 cities built from public-domain Natural Earth data by
+  `tools/make_route.py`) instead of Google's Santa Tracker route, so nothing
+  is downloaded for it and Christmas Eve works without internet. Every
+  country, and every US state, Canadian province and Australian state, gets
+  at least one stop (Anchorage, Whitehorse, Nuuk, Reykjavik, Fiji ...). The
+  old saved Google route is removed on update.
 * **Run live from this moment** (under the preview): starts the running
   display as if it were the chosen preview moment, for testing, until
   **Stop**, without changing the FPP's clock. The start button shows

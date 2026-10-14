@@ -2,8 +2,8 @@
 """
 Santa Tracker for FPP - engine for the fpp-santa-tracker plugin.
 
-Draws a world map with Santa's live position (from Google's Santa Tracker
-route) plus an info panel, or scrolls a text message, on a Pixel Overlay
+Draws a world map with Santa's live position (from the plugin's own route,
+route.json, built from Natural Earth by tools/make_route.py) plus an info panel, or scrolls a text message, on a Pixel Overlay
 Model. All settings come from the plugin's settings page
 (<media>/config/plugin.fpp-santa-tracker); nothing needs editing here.
 
@@ -54,9 +54,9 @@ FPP_HOST = "127.0.0.1"
 SCRIPT_PATH = os.path.abspath(__file__)
 PYTHON = sys.executable or "/usr/bin/python3"
 
-ROUTE_URL = ("https://firebasestorage.googleapis.com/v0/b/"
-             "santa-tracker-firebase.appspot.com/o/route%2Fsanta_en.json?alt=media")
-ROUTE_MAX_AGE = 6 * 3600
+# Santa's route ships with the plugin (built by tools/make_route.py from
+# Natural Earth's public-domain list of cities); nothing is downloaded for it.
+ROUTE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "route.json")
 # Public-domain Natural Earth map data (1:50m), tried in this order.
 NE_SOURCES = [
     "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/",
@@ -67,7 +67,8 @@ NE_LAND = "ne_50m_land.geojson"
 NE_LAKES = "ne_50m_lakes.geojson"
 NE_COUNTRY_LINES = "ne_50m_admin_0_boundary_lines_land.geojson"
 NE_STATE_LINES = "ne_50m_admin_1_states_provinces_lines.geojson"
-# Google's published route is stamped for Dec 24 2019 (takeoff 10:00 UTC).
+# route.json is stamped for Christmas Eve 2019; times are moved to this year
+# by shifting Dec 24 2019 10:00 UTC to Dec 24 10:00 UTC of this season.
 ROUTE_BASE_TAKEOFF_MS = 1577181600000
 
 # ============================ SETTINGS ===================================
@@ -315,28 +316,18 @@ def tz():
 
 
 # ------------------------------------------------------------- route data
+_route_cache = {}
+
+
 def load_route():
-    cache = os.path.join(ensure_data_dir(), "santa_route.json")
-    fresh = os.path.exists(cache) and time.time() - os.path.getmtime(cache) < ROUTE_MAX_AGE
-    if not fresh:
+    """Santa's stops from route.json (read once per run)."""
+    if "dests" not in _route_cache:
         try:
-            req = urllib.request.Request(ROUTE_URL, headers={"User-Agent": "fpp-santa-tracker"})
-            with urllib.request.urlopen(req, timeout=20) as r:
-                data = json.loads(r.read().decode("utf-8"))
-            for d in data.get("destinations", []):
-                d.pop("details", None)           # drop the bulky photo data
-            tmp = cache + ".tmp"
-            with open(tmp, "w") as f:
-                json.dump(data, f)
-            os.replace(tmp, cache)
-            own(cache)
-            log(f"Route downloaded ({len(data['destinations'])} stops)")
+            with open(ROUTE_FILE, encoding="utf-8") as f:
+                _route_cache["dests"] = json.load(f)["destinations"]
         except Exception as e:
-            if not os.path.exists(cache):
-                raise RuntimeError(f"Can't download Santa's route: {e}")
-            log(f"Route download failed ({e}); using the saved copy")
-    with open(cache) as f:
-        return json.load(f)["destinations"]
+            raise RuntimeError(f"Can't read Santa's route ({ROUTE_FILE}): {e}")
+    return _route_cache["dests"]
 
 
 def season_year(now_ms):

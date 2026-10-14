@@ -51,8 +51,6 @@ automatically when FPP starts**.
 Nothing about you or your show is sent anywhere. While the display or the
 preview is in use, the plugin downloads:
 
-* Google's public Santa Tracker route file, from `firebasestorage.googleapis.com`
-  (checked at most every 6 hours)
 * once, public-domain Natural Earth map data (coastlines, lakes, state and
   country borders), from `raw.githubusercontent.com` (or `cdn.jsdelivr.net` /
   `d2ad6b4ur7yvpq.cloudfront.net` if that fails)
@@ -60,7 +58,7 @@ preview is in use, the plugin downloads:
 ## Files it writes and what it changes
 
 * `config/plugin.fpp-santa-tracker`: your settings
-* `plugindata/fpp-santa-tracker/`: the saved route and map data, small status
+* `plugindata/fpp-santa-tracker/`: the saved map data, small status
   notes while the display runs, and the overlay model's state from before the
   plugin first drew on it
 * `images/santa_map_*.png`: the current map picture, which FPP's overlay Image
