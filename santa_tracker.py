@@ -28,6 +28,7 @@ import base64
 import json
 import math
 import os
+import re
 import signal
 import subprocess
 import sys
@@ -82,6 +83,7 @@ DEFAULTS = {
     "RefreshSeconds": "30",             # running display: how often to update
     "AutoStart": "0",                   # start the display when FPP starts
     # location
+    "FollowFppLocation": "auto",        # 1 = always FPP's location and time zone, 0 = these
     "Latitude": "",                     # blank = FPP's own location setting
     "Longitude": "",
     "TimeZone": "",                     # blank = FPP's time zone
@@ -242,6 +244,85 @@ def fpp_setting(name):
         return ""
 
 
+FPP_LOCATION_KEYS = ("Latitude", "Longitude", "TimeZone")
+FPP_LOCATION_CHECK_S = 300      # running display: how often to look for a change in FPP's location
+
+
+def write_plugin_settings(values, path=CONFIG_FILE):
+    """Change some keys in FPP's plugin settings file and keep the rest. Only
+    an existing file is changed (in place, so it keeps its owner)."""
+    try:
+        with open(path) as f:
+            lines = f.read().splitlines()
+    except FileNotFoundError:
+        return False
+    left = {k: re.sub(r'["\\$`]', "", str(v)) for k, v in values.items()}
+    out = []
+    for ln in lines:
+        k = ln.split("=", 1)[0].strip() if "=" in ln else None
+        out.append(f'{k} = "{left.pop(k)}"' if k in left else ln)
+    out += [f'{k} = "{v}"' for k, v in left.items()]
+    with open(path, "w") as f:
+        f.write("\n".join(out) + "\n")
+    return True
+
+
+def fpp_location():
+    return {k: fpp_setting(k).strip() for k in FPP_LOCATION_KEYS}
+
+
+def same_location(a, b):
+    try:
+        if any(abs(float(a[k]) - float(b[k])) > 1e-6 for k in ("Latitude", "Longitude")):
+            return False
+    except (KeyError, ValueError):
+        return False
+    return a.get("TimeZone", "").strip() == b.get("TimeZone", "").strip()
+
+
+def follows_fpp(cfg, fpp):
+    """'Follow FPP's location & time zone'. Settings saved before that box
+    existed ('auto') follow FPP while they are blank or still match FPP's."""
+    flag = str(cfg.get("FollowFppLocation", "auto"))
+    if flag in ("0", "1"):
+        return flag == "1"
+    saved = {k: str(cfg.get(k, "")).strip() for k in FPP_LOCATION_KEYS}
+    return not any(saved.values()) or same_location(saved, fpp)
+
+
+def sync_fpp_location():
+    """When following FPP, pick up a change made in FPP's settings, use it
+    from the next picture and save it in the plugin's settings. Settings from
+    before the follow box existed ('auto') are settled to on or off here,
+    while FPP's location still matches what was saved (run on install and
+    update, when the display starts, and every few minutes while it runs).
+    Returns True when the location in use changed."""
+    saved = read_plugin_settings()
+    cfg = dict(DEFAULTS)
+    cfg.update(saved)
+    fpp = fpp_location()
+    if not (fpp["Latitude"] and fpp["Longitude"]):
+        return False
+    follow = follows_fpp(cfg, fpp)
+    to_save = {}
+    if saved.get("FollowFppLocation") not in ("0", "1"):
+        to_save["FollowFppLocation"] = "1" if follow else "0"
+    changed = {}
+    if follow:
+        new = {k: v for k, v in fpp.items() if v}
+        changed = {k: v for k, v in new.items() if CFG.get(k, "") != v}
+        CFG.update(new)
+        to_save.update({k: v for k, v in new.items() if saved.get(k, "") != v})
+    if to_save:
+        try:
+            write_plugin_settings(to_save)
+        except Exception as e:
+            log(f"Couldn't save FPP's location in the plugin settings: {e}")
+    if changed:
+        log("Following FPP's location: now " + ", ".join(f"{k} {v}" for k, v in changed.items()))
+    return bool(changed)
+
+
 def load_settings(override_path=None):
     CFG.clear()
     CFG.update(DEFAULTS)
@@ -254,10 +335,12 @@ def load_settings(override_path=None):
         except Exception as e:
             log(f"Couldn't read preview settings: {e}")
     upgrade_settings(CFG)
-    for key, fpp_key in (("Latitude", "Latitude"), ("Longitude", "Longitude"),
-                         ("TimeZone", "TimeZone")):
+    fpp = fpp_location()
+    if follows_fpp(CFG, fpp):
+        CFG.update({k: v for k, v in fpp.items() if v})
+    for key in FPP_LOCATION_KEYS:
         if not CFG.get(key, "").strip():
-            CFG[key] = fpp_setting(fpp_key)
+            CFG[key] = fpp[key]
 
 
 def cfg_str(k):
@@ -498,7 +581,7 @@ def panel_bottom(st):
     at_home = state == "stop" and d.get("id") == "home_stop"
     out = []
     if home_countdown(st):
-        out.append((f"DEST IN\n{hours_short(st['home_left_ms'])}", "eta"))
+        out.append((f"LOCAL IN\n{hours_short(st['home_left_ms'])}", "eta"))
     elif state == "flying":
         out.append((f"ETA {max(1, round(st['left_ms'] / 60000))} MIN", "eta"))
     if at_home:
@@ -1910,10 +1993,17 @@ def main():
     ap.add_argument("--dry-run", action="store_true", help="print the text message only")
     ap.add_argument("--settings-json", action="store_true",
                     help="print the saved settings (with defaults) as JSON")
+    ap.add_argument("--sync-location", action="store_true",
+                    help="when following FPP's location, save a change made in FPP (install/update)")
     a = ap.parse_args()
 
-    if a.preview_json or a.moments_json or a.status or a.settings_json:
+    if a.preview_json or a.moments_json or a.status or a.settings_json or a.sync_location:
         QUIET = True
+    if a.sync_location:
+        load_settings()
+        changed = sync_fpp_location()
+        print(json.dumps({"ok": True, "changed": changed}))
+        return 0
     if a.loop or a.once:
         os.closerange(3, 256)      # don't hold on to fppd's sockets
     if a.status:
@@ -2047,8 +2137,15 @@ def main():
         + (f", simulating {a.at}" if a.at else "") + ")")
 
     last_png, last_sent = None, 0.0
+    location_checked = 0.0          # check at once, then every FPP_LOCATION_CHECK_S
     try:
         while True:
+            if a.loop and time.time() - location_checked >= FPP_LOCATION_CHECK_S:
+                location_checked = time.time()
+                try:
+                    sync_fpp_location()
+                except Exception as e:
+                    log(f"Couldn't check FPP's location: {e}")
             try:
                 dests = load_route()
                 st = santa_status(dests, now_ms())

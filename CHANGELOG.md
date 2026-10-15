@@ -11,6 +11,24 @@ heading when the change is released.
 
 ### Added
 
+* **Follow FPP's location & time zone** (Location, on by default) replaces
+  the **Use FPP's location & time zone** button. While it's ticked, a
+  location or time zone changed in FPP's settings is picked up and saved
+  automatically (within 5 minutes on a running display, or when the settings
+  page is opened). Untick it to type a different town. Settings from before
+  keep their own values if they differ from FPP's.
+* A small **?** next to each section title on the settings page (Location,
+  Map, Right-hand text colors, Wording, Display, Scrolling text, Preview):
+  point at it, or tap it on a phone, for a short description of that
+  section.
+* **Help** button on the settings page (or press **F1**): a help page that
+  describes each setting, with links at the top to each section and the
+  preview at the bottom.
+* **FPP 9 support**: the Plugin Manager now offers the plugin on FPP 9 as
+  well as FPP 10 (tested on FPP 9: settings page, commands, Show on matrix,
+  Start/Stop, Run live with the globe, uninstall).
+* **Release Notes** link in FPP's Plugin Manager for updates (the commits
+  since the installed version).
 * **Built-in route**: Santa's route is now part of the plugin (`route.json`,
   about 580 cities built from public-domain Natural Earth data by
   `tools/make_route.py`) instead of Google's Santa Tracker route, so nothing
@@ -39,7 +57,7 @@ heading when the change is released.
   "HE'S HERE!", "DELIVERED") are wrapped instead of cut off. **Normal**
   keeps the previous panel.
 * **ETA shows** setting. **Time until Santa reaches my town** (the new
-  default) shows "DEST IN 6H 48M" on the panel, counting down all night to
+  default) shows "LOCAL IN 6H 48M" on the panel, counting down all night to
   his visit to your town, and "he reaches Your Town in 6 hours 48 min" in
   the scrolling text. After his visit it goes back to the time to his next
   stop. **Time to his next stop** keeps the previous "ETA n MIN".
@@ -52,6 +70,20 @@ heading when the change is released.
 
 ### Changed
 
+* The countdown to your town on the panel now says "LOCAL IN 6H 48M"
+  instead of "DEST IN 6H 48M", so it doesn't read as the time to the stop
+  named above it.
+* The **Show** setting (Display) is now called **What to show on the matrix**,
+  and the note under **Scrolling text** says it is only used when that is
+  **Scrolling text** or **Map, then scrolling text**, so it is clearer where
+  scrolling text is turned on.
+* `pluginInfo.json` declares an empty `dependencies` block (no extra
+  packages, Python modules, scripts or plugins needed), ready for FPP 11,
+  which will require it.
+* Passes fpp-data's plugin checks with no findings: the install script stops
+  on an unexpected error (`set -e`, with the steps that may fail harmlessly
+  guarded), the command scripts' shared helper has a `#!/bin/bash` line, and
+  the privacy note about the map download is shorter.
 * Documentation: troubleshooting for a display that hardly seems to move and
   for a wrong FPP clock; the README mentions the globe, the built-in route,
   **Run live from this moment** and **Update every**.

@@ -13,6 +13,10 @@ $fppsantatrackerBoot = array(
 #fppsantatracker .fst-preview { line-height: 0; }
 #fppsantatracker .fst-preview canvas { width: 100%; height: auto; image-rendering: pixelated; border-radius: .375rem; }
 #fppsantatracker .fst-swatch { width: 1.25rem; height: 1.25rem; border-radius: .25rem; display: inline-block; }
+#fppsantatracker .fst-q { width: 1.1rem; height: 1.1rem; padding: 0; border-radius: 50%; font-size: .7rem; font-weight: 700;
+  line-height: 1; vertical-align: .2em; border: 1px solid var(--bs-secondary-color); background: transparent;
+  color: var(--bs-secondary-color); cursor: help; }
+#fppsantatracker .fst-q:hover, #fppsantatracker .fst-q:focus { color: var(--bs-body-bg); background: var(--bs-secondary-color); }
 #fppsantatracker .fst-savebar { position: sticky; bottom: .5rem; z-index: 5; }
 @media (min-width: 1200px) { #fppsantatracker .fst-aside { position: sticky; top: .75rem; } }
 </style>
@@ -21,6 +25,8 @@ $fppsantatrackerBoot = array(
   <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
     <h2 class="h3 mb-0 me-2">Santa Tracker</h2>
     <div class="ms-auto d-flex gap-2">
+      <button type="button" class="btn btn-outline-secondary" id="sHelp"
+              title="What each setting does (or press F1)">Help</button>
       <button type="button" class="btn btn-primary" id="sStart"
               title="Runs until you press Stop (same as the 'Santa Tracker - Start' command)">Start Display</button>
       <button type="button" class="btn btn-danger" id="sStop">Stop</button>
@@ -34,7 +40,7 @@ $fppsantatrackerBoot = array(
       <div class="fst-aside">
         <div class="card">
           <div class="card-body">
-            <h3 class="h5 card-title">Preview</h3>
+            <h3 class="h5 card-title">Preview <button type="button" class="fst-q" data-bs-toggle="tooltip" data-bs-placement="top" title="A picture of your panel that updates as you change settings. Pick a moment to see another day or time, then try it on the real matrix." aria-label="About Preview">?</button></h3>
             <p class="small text-body-secondary mb-2">Updates as you change settings. Nothing is sent to the matrix until you press <b>Show on matrix</b> or <b>Run live from this moment</b>.</p>
             <div class="fst-preview bg-black rounded p-2"><canvas id="sCanvas" width="960" height="320"></canvas></div>
             <div class="row g-2 align-items-end mt-1">
@@ -76,20 +82,25 @@ $fppsantatrackerBoot = array(
     <div class="col-12 col-xl-6 order-xl-1">
 
       <div class="card mb-3"><div class="card-body">
-        <h3 class="h5 card-title">Location</h3>
+        <h3 class="h5 card-title">Location <button type="button" class="fst-q" data-bs-toggle="tooltip" data-bs-placement="top" title="Where your town is, so Santa's distance, ETA and the zoomed-in map are right. Optionally makes your town one of his stops." aria-label="About Location">?</button></h3>
         <div class="row g-2">
           <div class="col-12 col-sm-6"><label class="form-label mb-1" for="sCity">City name</label>
             <input type="text" class="form-control" id="sCity" data-key="CityName" maxlength="40" placeholder="Your Town"></div>
           <div class="col-12 col-sm-6"><label class="form-label mb-1" for="sState">State</label>
             <input type="text" class="form-control" id="sState" data-key="State" maxlength="40" placeholder="State"></div>
+          <div class="col-12">
+            <div class="form-check mb-0">
+              <input class="form-check-input" type="checkbox" id="sFollow" data-key="FollowFppLocation">
+              <label class="form-check-label" for="sFollow"
+                     title="Uses the location and time zone set in FPP (Settings &gt; System), and picks up any change made there">Follow FPP's location &amp; time zone</label>
+            </div>
+            <div class="form-text mt-0" id="sFollowNote"></div></div>
           <div class="col-6"><label class="form-label mb-1" for="sLat">Latitude</label>
             <input type="text" inputmode="decimal" class="form-control" id="sLat" data-key="Latitude" placeholder="Latitude"></div>
           <div class="col-6"><label class="form-label mb-1" for="sLng">Longitude</label>
             <input type="text" inputmode="decimal" class="form-control" id="sLng" data-key="Longitude" placeholder="Longitude"></div>
           <div class="col-12 col-sm-6"><label class="form-label mb-1" for="sTz">Time zone</label>
             <select class="form-select" data-key="TimeZone" id="sTz"></select></div>
-          <div class="col-12 col-sm-6 d-flex align-items-end">
-            <button type="button" class="btn btn-outline-secondary w-100" id="sUseFpp">Use FPP's location &amp; time zone</button></div>
         </div>
         <div class="small mt-2" id="sLocNote"></div>
         <div class="form-check mt-3">
@@ -105,7 +116,7 @@ $fppsantatrackerBoot = array(
       </div></div>
 
       <div class="card mb-3"><div class="card-body">
-        <h3 class="h5 card-title">Map</h3>
+        <h3 class="h5 card-title">Map <button type="button" class="fst-q" data-bs-toggle="tooltip" data-bs-placement="top" title="How the map looks: flat world map or globe, how Santa is drawn, how far it zooms in near your town, and the map colors." aria-label="About Map">?</button></h3>
         <div class="row g-2 mb-2">
           <div class="col-12 col-sm-6"><label class="form-label mb-1" for="sMarker">Show Santa as</label>
             <select class="form-select" data-key="SantaMarker" id="sMarker">
@@ -156,7 +167,7 @@ $fppsantatrackerBoot = array(
       </div></div>
 
       <div class="card mb-3"><div class="card-body">
-        <h3 class="h5 card-title">Right-hand text colors</h3>
+        <h3 class="h5 card-title">Right-hand text colors <button type="button" class="fst-q" data-bs-toggle="tooltip" data-bs-placement="top" title="Colors of the info panel beside the map (NOW IN, city, ETA, distance, gifts, countdown and greetings)." aria-label="About Right-hand text colors">?</button></h3>
         <div class="row g-2">
           <div class="col-12 col-sm-6"><label class="form-label mb-1" for="sPanelMode">Color style</label>
             <select class="form-select" data-key="PanelColorMode" id="sPanelMode">
@@ -191,7 +202,7 @@ $fppsantatrackerBoot = array(
       </div></div>
 
       <div class="card mb-3"><div class="card-body">
-        <h3 class="h5 card-title">Wording</h3>
+        <h3 class="h5 card-title">Wording <button type="button" class="fst-q" data-bs-toggle="tooltip" data-bs-placement="top" title="What the panel says: the countdown message, what the ETA counts down to, and whether distance and gifts are shown." aria-label="About Wording">?</button></h3>
         <label class="form-label mb-1" for="sPhrase">Countdown message</label>
         <div class="input-group flex-wrap">
           <span class="input-group-text">Santa</span>
@@ -214,11 +225,11 @@ $fppsantatrackerBoot = array(
       </div></div>
 
       <div class="card mb-3"><div class="card-body">
-        <h3 class="h5 card-title">Display</h3>
+        <h3 class="h5 card-title">Display <button type="button" class="fst-q" data-bs-toggle="tooltip" data-bs-placement="top" title="Which overlay model (matrix) to draw on, whether to show the map, scrolling text or both, and starting automatically with FPP." aria-label="About Display">?</button></h3>
         <div class="row g-2">
           <div class="col-12 col-sm-6"><label class="form-label mb-1" for="sModel">Overlay model</label>
             <select class="form-select" data-key="ModelName" id="sModel"><option value="">(first model)</option></select></div>
-          <div class="col-12 col-sm-6"><label class="form-label mb-1" for="sMode">Show</label>
+          <div class="col-12 col-sm-6"><label class="form-label mb-1" for="sMode">What to show on the matrix</label>
             <select class="form-select" data-key="DisplayMode" id="sMode">
               <option value="map">Map with info panel</option>
               <option value="text">Scrolling text</option>
@@ -235,8 +246,8 @@ $fppsantatrackerBoot = array(
       </div></div>
 
       <div class="card mb-3"><div class="card-body">
-        <h3 class="h5 card-title">Scrolling text</h3>
-        <p class="small text-body-secondary">Used when Show is set to scrolling text. FPP draws this text itself, so the preview shows the message it will scroll rather than a picture.</p>
+        <h3 class="h5 card-title">Scrolling text <button type="button" class="fst-q" data-bs-toggle="tooltip" data-bs-placement="top" title="Font, size, speed and colors of the scrolling message, only used when What to show on the matrix (in Display) includes scrolling text." aria-label="About Scrolling text">?</button></h3>
+        <p class="small text-body-secondary">Only used when <b>Display &gt; What to show on the matrix</b> is <b>Scrolling text</b> or <b>Map, then scrolling text</b>. FPP draws this text itself, so the preview shows the message it will scroll rather than a picture.</p>
         <div class="row g-2">
           <div class="col-12 col-sm-6"><label class="form-label mb-1" for="sFont">Font</label>
             <select class="form-select" data-key="TextFont" id="sFont"></select></div>
@@ -419,7 +430,8 @@ $fppsantatrackerBoot = array(
     $$('[data-key]').forEach(function (el) {
       var k = el.getAttribute('data-key');
       var v = s[k] !== undefined ? String(s[k]) : '';
-      if (el.type === 'checkbox') el.checked = (v === '1' || v === 'true');
+      // FollowFppLocation is 'auto' until FPP has a location: start it ticked
+      if (el.type === 'checkbox') el.checked = (v === '1' || v === 'true' || (k === 'FollowFppLocation' && v === 'auto'));
       else if (el.type === 'color') el.value = /^#[0-9a-fA-F]{6}$/.test(v) ? v : '#FFFFFF';
       else if (el.tagName === 'SELECT') {
         if (v && !Array.prototype.some.call(el.options, function (o) { return o.value === v; })) {
@@ -431,6 +443,38 @@ $fppsantatrackerBoot = array(
     buildCustom(String(s.PanelCustomColors || '').split(',').filter(function (c) { return /^#/.test(c.trim()); }));
     syncCodes();
     refreshVisibility();
+    followFpp();
+  }
+
+  // "Follow FPP's location & time zone": the boxes show FPP's values and are
+  // locked; the plugin picks up any change later made in FPP's settings
+  var ownLoc = null;   // what was typed before ticking the box, put back on unticking
+  function followFpp() {
+    var on = $('#sFollow').checked;
+    var f = info.fpp || {};
+    var hasLoc = !isNaN(parseFloat(f.Latitude)) && !isNaN(parseFloat(f.Longitude));
+    var lockLoc = on && hasLoc, lockTz = on && hasLoc && !!f.TimeZone;
+    if (lockLoc && !$('#sLat').disabled) ownLoc = [$('#sLat').value, $('#sLng').value, $('#sTz').value];
+    if (!on && ownLoc) {
+      $('#sLat').value = ownLoc[0];
+      $('#sLng').value = ownLoc[1];
+      $('#sTz').value = ownLoc[2];
+      ownLoc = null;
+    }
+    if (lockLoc) {
+      $('#sLat').value = f.Latitude;
+      $('#sLng').value = f.Longitude;
+    }
+    if (lockTz) {
+      var tzSel = $('#sTz');
+      if (!Array.prototype.some.call(tzSel.options, function (o) { return o.value === f.TimeZone; })) tzSel.appendChild(new Option(f.TimeZone, f.TimeZone));
+      tzSel.value = f.TimeZone;
+    }
+    $('#sLat').disabled = $('#sLng').disabled = lockLoc;
+    $('#sTz').disabled = lockTz;
+    $('#sFollowNote').textContent = !on ? 'Using the location and time zone below, whatever FPP is set to.'
+      : hasLoc ? 'Set in FPP under Settings > System. A change made there is picked up and saved here automatically.'
+      : 'FPP has no location set (Settings > System), so the values typed below are used until it has one.';
   }
   function getForm() {
     var out = {};
@@ -602,20 +646,6 @@ $fppsantatrackerBoot = array(
     });
   }
 
-  // read one of FPP's own settings live (falls back to what the page loaded with)
-  function fppSetting(name) {
-    return fetch('/api/settings/' + encodeURIComponent(name)).then(function (r) { return r.text(); }).then(function (t) {
-      var v = '';
-      try {
-        var j = JSON.parse(t);
-        if (j && typeof j === 'object') v = j.value !== undefined ? j.value : (j[name] !== undefined ? j[name] : '');
-        else v = j;
-      } catch (e) { v = t; }
-      v = String(v === null || v === undefined ? '' : v).trim().replace(/^"|"$/g, '');
-      return v || (info.fpp || {})[name] || '';
-    }).catch(function () { return (info.fpp || {})[name] || ''; });
-  }
-
   // plain-English check of the coordinates, under the Location boxes
   function checkLocation(nearest) {
     var note = $('#sLocNote');
@@ -649,26 +679,23 @@ $fppsantatrackerBoot = array(
   // ---------- wire up ----------
   root.addEventListener('input', function (e) { if (e.target.closest('[data-key]')) changed(); });
   root.addEventListener('change', function (e) { if (e.target.closest('[data-key]')) changed(); });
+  $('#sFollow').addEventListener('change', followFpp);   // before changed() redraws the preview
   $('#sCustomCount').addEventListener('change', function () { showCustomCount(); changed(); });
   $('#sMoment').addEventListener('change', runPreview);
   $('#sLed').addEventListener('change', function () { if (lastPreview) drawPng(lastPreview); });
+  // "?" next to each section title: a short description on hover, focus or tap
+  $$('.fst-q').forEach(function (b) {
+    if (window.bootstrap && bootstrap.Tooltip) { bootstrap.Tooltip.getOrCreateInstance(b); }
+  });
   $('#sSave').addEventListener('click', save);
-  $('#sUseFpp').addEventListener('click', function () {
-    Promise.all([fppSetting('Latitude'), fppSetting('Longitude'), fppSetting('TimeZone')]).then(function (v) {
-      if (!v[0] || !v[1] || isNaN(parseFloat(v[0])) || isNaN(parseFloat(v[1]))) {
-        toast('FPP doesn\'t have a location set. Set it under Settings, or type your coordinates here.', false);
-        return;
-      }
-      $('#sLat').value = v[0];
-      $('#sLng').value = v[1];
-      if (v[2]) {
-        var tzSel = $('#sTz');
-        if (!Array.prototype.some.call(tzSel.options, function (o) { return o.value === v[2]; })) tzSel.appendChild(new Option(v[2], v[2]));
-        tzSel.value = v[2];
-      }
-      toast('Using FPP\'s location: ' + v[0] + ', ' + v[1] + (v[2] ? ' (' + v[2] + ')' : '') + '. Check the map, then Save.', true);
-      changed();
-    });
+  // FPP's help window (F1) shows help/content.php; open it on its own if
+  // this FPP has no help window
+  $('#sHelp').addEventListener('click', function () {
+    if (typeof DisplayHelp === 'function' && typeof helpPage !== 'undefined') {
+      DisplayHelp();
+    } else {
+      window.open('plugin.php?plugin=fpp-santa-tracker&page=help/content.php', '_blank');
+    }
   });
   $('#sStart').addEventListener('click', function () {
     (isDirty() ? save() : Promise.resolve(true)).then(function (ok) {

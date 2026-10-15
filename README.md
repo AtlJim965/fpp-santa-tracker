@@ -15,7 +15,7 @@ Your town can be added as one of Santa's stops ("FLYING TO: YOUR TOWN" ...
 Santa's route is built in (about 580 cities, each reached around its local
 midnight), so it needs no internet on Christmas Eve.
 
-Requires FPP 10 or newer. Uses FPP's own Python 3; no extra packages.
+Requires FPP 9 or newer. Uses FPP's own Python 3; no extra packages.
 
 ## Install
 
@@ -39,7 +39,8 @@ press **Show on matrix** to try it on the real panel for **Show for
 were that moment until **Stop**. **Update every (seconds)**, next to it, sets
 how often the matrix redraws (15 is good for Christmas Eve). Under Location,
 the page names the nearest stop on Santa's route, so you can check your
-coordinates. Every setting is explained in [DOCUMENTATION.md](DOCUMENTATION.md).
+coordinates. The **Help** button (or **F1**) explains each setting on the page,
+and [DOCUMENTATION.md](DOCUMENTATION.md) has the full reference.
 
 FPP Commands (playlists, schedules, buttons):
 
@@ -65,7 +66,9 @@ preview is in use, the plugin downloads:
 
 ## Files it writes and what it changes
 
-* `config/plugin.fpp-santa-tracker`: your settings
+* `config/plugin.fpp-santa-tracker`: your settings (with **Follow FPP's
+  location & time zone** on, the plugin updates the location and time zone
+  here when they change in FPP)
 * `plugindata/fpp-santa-tracker/`: the saved map data, small status
   notes while the display runs, and the overlay model's state from before the
   plugin first drew on it

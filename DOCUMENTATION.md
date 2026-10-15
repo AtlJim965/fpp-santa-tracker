@@ -41,7 +41,7 @@ one of his stops, so the matrix shows "FLYING TO: YOUR TOWN" and then
 
 ## Requirements
 
-* FPP 10 or newer
+* FPP 9 or newer
 * A Pixel Overlay Model for the matrix (Input/Output Setup > Pixel Overlay
   Models). A panel about 128x64 or bigger shows the map and the panel
   together best.
@@ -89,6 +89,12 @@ The buttons at the top:
   turns green and shows Running.
 * **Stop** - stops the display, clears the model and puts it back the way it
   was before the plugin drew on it.
+* **Help** - opens a help page in FPP's help window (or press **F1**) that
+  describes each setting, with links at the top to each section and the
+  preview last.
+
+Point at the small **?** beside a section's title (or tap it on a phone) for
+a short description of that section.
 
 The setting names in `code` are the keys stored in
 `config/plugin.fpp-santa-tracker`.
@@ -99,6 +105,7 @@ The setting names in `code` are the keys stored in
 |---|---|---|---|
 | City name | `CityName` | blank ("Your Town") | Shown on the panel and in messages |
 | State | `State` | blank | Shown under the city name |
+| Follow FPP's location & time zone | `FollowFppLocation` | on | See below |
 | Latitude | `Latitude` | FPP's location | Decimal degrees, e.g. `42.088289` |
 | Longitude | `Longitude` | FPP's location | Decimal degrees. West of Greenwich (the Americas) is negative, e.g. `-87.980451` |
 | Time zone | `TimeZone` | FPP's time zone | Used for the countdown and preview times |
@@ -106,8 +113,20 @@ The setting names in `code` are the keys stored in
 | Minutes "Flying to" shows | `HomeApproachMin` | 3 | How long he flies to your town (1-30) |
 | Minutes "Now in" shows | `HomeStayMin` | 2 | How long he stays (1-30) |
 
-**Use FPP's location & time zone** copies the values from FPP's own settings
-(Settings > System). Under the fields, the page shows where your town is
+**Follow FPP's location & time zone** (on by default) uses the location and
+time zone set in FPP (Settings > System). The Latitude, Longitude and Time
+zone boxes show FPP's values and can't be changed. If they are changed in
+FPP later, the plugin picks that up and saves it in its own settings: when
+the settings page is opened, within 5 minutes while the display runs, and
+when the plugin is updated. Untick it to type a different town; the plugin
+then keeps those values whatever FPP is set to. If FPP has no location set,
+the values typed in the boxes are used until it has one.
+
+Settings saved by an older version (before this box existed) follow FPP if
+they still match FPP's location and time zone, and keep their own values if
+they don't.
+
+Under the fields, the page shows where your town is
 marked and the nearest stop on Santa's route, so you can check the
 coordinates. For example, Arlington Heights, IL shows "Chicago, Illinois, USA
 (23 mi)".
@@ -173,12 +192,15 @@ The per-line colors:
 | Setting | Key | Default | Notes |
 |---|---|---|---|
 | Overlay model | `ModelName` | first model | The Pixel Overlay Model to draw on |
-| Show | `DisplayMode` | Map with info panel | Or **Scrolling text** / **Map, then scrolling text** |
+| What to show on the matrix | `DisplayMode` | Map with info panel | Or **Scrolling text** / **Map, then scrolling text**. This is where scrolling text is turned on. |
 | Map seconds | `MapSeconds` | 20 | How long the map shows before the text, in "Map, then scrolling text" mode |
 | Update every (seconds) | `RefreshSeconds` | 30 | Under the preview, next to **Run live from this moment**. How often the matrix redraws (5-3600): the running display, **Show on matrix**, **Show Once** and the map part of "Map, then scrolling text". 15 is a good choice for Christmas Eve. The matrix only reloads when the picture has changed. |
 | Start the display automatically when FPP starts | `AutoStart` | off | |
 
 ### Scrolling text
+
+Only used when **Display > What to show on the matrix** is **Scrolling
+text** or **Map, then scrolling text**.
 
 | Setting | Key | Default |
 |---|---|---|
@@ -214,7 +236,7 @@ same moments are available to the **Santa Tracker - Preview** command.
 **Show on matrix** saves your settings, then plays the chosen moment on the
 matrix for **Show for (seconds)** (3-600) and then turns the matrix off. The
 clock keeps running from that moment and the matrix redraws every **Update
-every** seconds, so a preview of "Approaching my town" plays out: "DEST IN 1
+every** seconds, so a preview of "Approaching my town" plays out: "LOCAL IN 1
 MIN", then "HE'S HERE!".
 
 **Run live from this moment** is for testing the running display: it starts
@@ -316,8 +338,8 @@ coastline, with lakes such as the Great Lakes cut out.
 | When | Panel |
 |---|---|
 | Before Christmas Eve | "SANTA BEGINS HIS JOURNEY IN", the number of days, "HO HO HO!". Days are counted on the calendar in your time zone. On Christmas Eve it counts hours, then minutes, until takeoff. |
-| Flying | "FLYING TO:", the next city and its region, the time until he reaches your town ("DEST IN 6H 48M"), the distance from your town |
-| At a stop | "NOW IN:", the city and region, "DEST IN ..." (time until he reaches your town), the distance, the gifts delivered so far |
+| Flying | "FLYING TO:", the next city and its region, the time until he reaches your town ("LOCAL IN 6H 48M"), the distance from your town |
+| At a stop | "NOW IN:", the city and region, "LOCAL IN ..." (time until he reaches your town), the distance, the gifts delivered so far |
 | At your town | "NOW IN:" your town, "HE'S HERE!" |
 | Christmas morning | "SANTA IS HOME!", "MERRY CHRISTMAS!", the total gifts delivered |
 
@@ -327,7 +349,7 @@ left Your Town"). Without **Make my town one of Santa's stops**, "been to
 your town" means the stop on his route nearest to you.
 
 **ETA.** With **ETA shows: Time until Santa reaches my town** (the default),
-the panel shows "DEST IN" and the time until Santa reaches your town, such as
+the panel shows "LOCAL IN" and the time until Santa reaches your town, such as
 "6H 48M", then "4 MIN" as he gets close. It counts down all through Christmas
 Eve, at stops and while flying, and the scrolling text says "he reaches Your
 Town in 6 hours 48 min". Once he has visited your town, it goes back to the
@@ -358,7 +380,7 @@ downloads:
 
 | Path | What it is |
 |---|---|
-| `config/plugin.fpp-santa-tracker` | Your settings. Kept on uninstall. |
+| `config/plugin.fpp-santa-tracker` | Your settings. With **Follow FPP's location & time zone** on, the plugin updates the location and time zone here when they change in FPP. Kept on uninstall. |
 | `plugindata/fpp-santa-tracker/` | The saved map data, small status notes while the display runs, and the overlay model's state from before the plugin first drew on it |
 | `images/santa_map_*.png` | The current map picture, which FPP's overlay Image effect reads. Old frames are deleted automatically. |
 | `logs/plugin-fpp-santa-tracker.log` | The plugin's log (Status/Control > Logs) |
@@ -429,7 +451,7 @@ python3 santa_tracker.py --preview map.png      save a picture of the panel and 
 python3 santa_tracker.py --dry-run              print the scrolling-text message only
 ```
 
-* `--mode map|text|both` overrides **Show**.
+* `--mode map|text|both` overrides **What to show on the matrix**.
 * `--at` takes a moment key (`now`, `d30`, `d14`, `d7`, `d3`, `d1`,
   `eve_takeoff`, `eve_noon`, `eve_6pm`, `eve_9pm`, `home_soon`, `home_here`,
   `landed`), a moment name from the table above, or a date and time such as

@@ -68,22 +68,60 @@ function fppsantatracker_run_json($args) {
     return $j;
 }
 
+// Same test as follows_fpp() in santa_tracker.py: "Follow FPP's location &
+// time zone" is on, or (settings saved before that box existed) the saved
+// location is blank or still matches FPP's.
+function fppsantatracker_follows_fpp($s, $fpp) {
+    $flag = isset($s['FollowFppLocation']) ? (string)$s['FollowFppLocation'] : 'auto';
+    if ($flag === '1' || $flag === '0') {
+        return $flag === '1';
+    }
+    $lat = trim((string)(isset($s['Latitude']) ? $s['Latitude'] : ''));
+    $lng = trim((string)(isset($s['Longitude']) ? $s['Longitude'] : ''));
+    $tz = trim((string)(isset($s['TimeZone']) ? $s['TimeZone'] : ''));
+    if ($lat === '' && $lng === '' && $tz === '') {
+        return true;
+    }
+    return is_numeric($lat) && is_numeric($lng) && is_numeric($fpp['Latitude']) && is_numeric($fpp['Longitude'])
+        && abs((float)$lat - (float)$fpp['Latitude']) <= 1e-6
+        && abs((float)$lng - (float)$fpp['Longitude']) <= 1e-6
+        && $tz === trim((string)$fpp['TimeZone']);
+}
+
 // Saved settings, with FPP's own location and time zone filled in where blank.
+// When following FPP, a location or time zone changed in FPP's settings is
+// used and saved in the plugin's settings.
 function fppsantatracker_get_settings() {
     $j = fppsantatracker_run_json(array('--settings-json'));
     if (empty($j['ok'])) {
         return $j;
     }
-    foreach (array('Latitude', 'Longitude', 'TimeZone') as $key) {
-        if (!isset($j['settings'][$key]) || trim($j['settings'][$key]) == '') {
-            $j['settings'][$key] = fppsantatracker_setting($key, '');
+    $fpp = array(
+        'Latitude' => trim((string)fppsantatracker_setting('Latitude', '')),
+        'Longitude' => trim((string)fppsantatracker_setting('Longitude', '')),
+        'TimeZone' => trim((string)fppsantatracker_setting('TimeZone', '')),
+    );
+    $j['fpp'] = $fpp;
+    if ($fpp['Latitude'] !== '' && $fpp['Longitude'] !== '') {
+        $follow = fppsantatracker_follows_fpp($j['settings'], $fpp);
+        if (!isset($j['settings']['FollowFppLocation']) || $j['settings']['FollowFppLocation'] === 'auto') {
+            $j['settings']['FollowFppLocation'] = $follow ? '1' : '0';
+            fppsantatracker_write_setting('FollowFppLocation', $j['settings']['FollowFppLocation']);
+        }
+        if ($follow) {
+            foreach ($fpp as $key => $v) {
+                if ($v !== '' && (string)$j['settings'][$key] !== $v) {
+                    $j['settings'][$key] = $v;
+                    fppsantatracker_write_setting($key, $v);
+                }
+            }
         }
     }
-    $j['fpp'] = array(
-        'Latitude' => fppsantatracker_setting('Latitude', ''),
-        'Longitude' => fppsantatracker_setting('Longitude', ''),
-        'TimeZone' => fppsantatracker_setting('TimeZone', ''),
-    );
+    foreach ($fpp as $key => $v) {
+        if (!isset($j['settings'][$key]) || trim($j['settings'][$key]) == '') {
+            $j['settings'][$key] = $v;
+        }
+    }
     return $j;
 }
 
@@ -103,6 +141,7 @@ function fppsantatracker_check($key, $value, $defaults, $info) {
     $default = (string)$defaults[$key];
     $choices = array(
         'DisplayMode' => array('map', 'text', 'both'),
+        'FollowFppLocation' => array('1', '0', 'auto'),
         'MapView' => array('auto', 'globe'),
         'LocalZoom' => array('wide', 'medium', 'close'),
         'WorldShape' => array('fill', 'true'),

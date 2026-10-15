@@ -1,3 +1,4 @@
+#!/bin/bash
 # Shared setup for the Santa Tracker command scripts (sourced by bash, not run).
 # They must be bash: FPP's scripts/common, loaded below, is bash-only.
 # fppd runs these with only MEDIADIR, FPPDIR and SCRIPTDIR set (no PATH) and
