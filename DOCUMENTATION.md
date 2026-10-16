@@ -268,7 +268,9 @@ Use these in playlists, schedules, buttons and FPP's other command lists.
 **Seconds** is 3-600 (20 by default).
 
 A Show Once or Preview started while the display is running takes over the
-matrix, then hands it back to the running display when it finishes.
+matrix, then hands it back to the running display when it finishes. Its
+last picture stays up until the running display draws again, so the matrix
+doesn't go dark, and the start button stays **Running** throughout.
 
 A typical setup: schedule **Santa Tracker - Start** at dusk and **Santa
 Tracker - Stop** when the show ends, or tick **Start the display

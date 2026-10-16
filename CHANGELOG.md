@@ -67,6 +67,10 @@ heading when the change is released.
 
 ### Changed
 
+* When **Show Once** or **Preview** finishes while the display is running,
+  its last picture stays on the matrix until the running display draws again,
+  instead of the matrix going dark for a few seconds, and the start button
+  stays **Running** instead of briefly showing it stopped.
 * A failed map download is retried after 10 minutes instead of on every
   update, and the settings page's preview gives up on it sooner, so an FPP
   without internet doesn't slow the display or the page.

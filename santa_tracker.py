@@ -2107,8 +2107,18 @@ def relaunch(argv):
     try:
         env = dict(os.environ, SANTA_QUIET="1")
         with open(LOG_FILE, "a") as logf:
-            subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-                             stderr=logf, env=env, start_new_session=True, close_fds=True)
+            child = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                                     stderr=logf, env=env, start_new_session=True, close_fds=True)
+        # Leave the status note the new copy will take over, so the settings
+        # page keeps showing Running while it starts up instead of Stopped
+        try:
+            path = os.path.join(ensure_data_dir(), f"run_{child.pid}.json")
+            with open(path, "w") as f:
+                json.dump({"mode": "loop", "resuming": False, "started": int(time.time()),
+                           "argv": argv}, f)
+            os.chmod(path, 0o644)
+        except Exception:
+            pass
         log("Resumed the running display")
     except Exception as e:
         log(f"Couldn't resume the running display: {e}")
@@ -2311,7 +2321,9 @@ def main():
                         shown = None
                         while True:
                             if png != shown:
-                                show_image(cv, max(0.0, end - time.time()) + 3)
+                                # handing back to the running display: keep the
+                                # last picture up until it draws its own, not dark
+                                show_image(cv, 0 if resume else max(0.0, end - time.time()) + 3)
                                 shown = png
                             left = end - time.time()
                             if left <= 0.5:
