@@ -24,9 +24,6 @@ heading when the change is released.
 * **Help** button on the settings page (or press **F1**): a help page that
   describes each setting, with links at the top to each section and the
   preview at the bottom.
-* **FPP 9 support**: the Plugin Manager now offers the plugin on FPP 9 as
-  well as FPP 10 (tested on FPP 9: settings page, commands, Show on matrix,
-  Start/Stop, Run live with the globe, uninstall).
 * **Release Notes** link in FPP's Plugin Manager for updates (the commits
   since the installed version).
 * **Built-in route**: Santa's route is now part of the plugin (`route.json`,
@@ -70,6 +67,31 @@ heading when the change is released.
 
 ### Changed
 
+* When **Show Once** or **Preview** finishes while the display is running,
+  its last picture stays on the matrix until the running display draws again,
+  instead of the matrix going dark for a few seconds, and the start button
+  stays **Running** instead of briefly showing it stopped.
+* A failed map download is retried after 10 minutes instead of on every
+  update, and the settings page's preview gives up on it sooner, so an FPP
+  without internet doesn't slow the display or the page.
+* Putting the running display back after **Show Once** is safer: the plugin
+  only counts processes that run its own file, and restarts the display with
+  a command it builds itself (only the **--mode** and **--at** options carried
+  over).
+* The privacy note's reasons are worded the way fpp-data asks ("to draw the
+  map ...").
+* **Overlay model** left blank (now shown as **Automatic**) uses the biggest
+  model at least 16x8 pixels, and the list shows which one, instead of FPP's
+  first model, which could be a 1-pixel-tall arch. With no model that size
+  the display doesn't start and the page asks you to choose one. The page
+  warns when the chosen model is too thin for the map, and the preview names
+  the model it draws for.
+* **Color effect** and **Color effect palette** (scrolling text) are greyed
+  out on FPP 10.0 and 10.1, which don't have them, and the text uses **Text
+  color** there.
+* Requires FPP 10 or newer: the Plugin Manager no longer offers the plugin on
+  FPP 9, which has no overlay **Image** effect, so the map and info panel
+  can't be shown there (only the scrolling text could).
 * The countdown to your town on the panel now says "LOCAL IN 6H 48M"
   instead of "DEST IN 6H 48M", so it doesn't read as the time to the stop
   named above it.

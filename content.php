@@ -228,7 +228,8 @@ $fppsantatrackerBoot = array(
         <h3 class="h5 card-title">Display <button type="button" class="fst-q" data-bs-toggle="tooltip" data-bs-placement="top" title="Which overlay model (matrix) to draw on, whether to show the map, scrolling text or both, and starting automatically with FPP." aria-label="About Display">?</button></h3>
         <div class="row g-2">
           <div class="col-12 col-sm-6"><label class="form-label mb-1" for="sModel">Overlay model</label>
-            <select class="form-select" data-key="ModelName" id="sModel"><option value="">(first model)</option></select></div>
+            <select class="form-select" data-key="ModelName" id="sModel"><option value="">Automatic (biggest matrix)</option></select>
+            <div class="form-text" id="sModelNote"></div></div>
           <div class="col-12 col-sm-6"><label class="form-label mb-1" for="sMode">What to show on the matrix</label>
             <select class="form-select" data-key="DisplayMode" id="sMode">
               <option value="map">Map with info panel</option>
@@ -267,6 +268,7 @@ $fppsantatrackerBoot = array(
               <option>Christmas</option><option>Rainbow</option><option>Winter</option><option>Fire</option>
               <option>Ocean</option><option>Forest</option><option>Patriotic</option><option>Pastel</option><option>Party</option>
             </select></div>
+          <div class="col-12 form-text mt-0 d-none" id="sTextFxNote">Color effects need FPP 10.2 or newer. On this FPP the scrolling text uses <b>Text color</b>.</div>
         </div>
       </div></div>
 
@@ -530,7 +532,9 @@ $fppsantatrackerBoot = array(
         var mode = $('#sMode').value;
         $('#sMsg').innerHTML = '<b>' + escapeHtml(j.when) + '</b> &mdash; ' +
           (mode === 'map' ? 'Scrolling-text version: ' : 'Scrolling text: ') +
-          '<i>' + escapeHtml(j.text) + '</i>';
+          '<i>' + escapeHtml(j.text) + '</i><br>' +
+          (j.model ? 'On <b>' + escapeHtml(j.model) + '</b> (' + j.width + '×' + j.height + ').'
+                   : '<span class="text-danger fw-semibold">No overlay model to draw on: choose one under Display.</span>');
       }
       if (previewAgain) { previewAgain = false; runPreview(); }
     });
@@ -745,13 +749,48 @@ $fppsantatrackerBoot = array(
   });
 
   // models and fonts come from FPP itself
+  // Overlay model left blank: the biggest model at least 16x8 (same rule as
+  // pick_model() in santa_tracker.py), so an arch or a string is never used
+  var models = [];
+  function autoModel() {
+    var best = null;
+    models.forEach(function (m) {
+      var w = +m.width || 0, h = +m.height || 0;
+      if (m.Name && w >= 16 && h >= 8 && (!best || w * h > best.width * best.height)) best = m;
+    });
+    return best;
+  }
+  function modelNote() {
+    if (!models.length) return;
+    var sel = $('#sModel'), auto = autoModel(), note = $('#sModelNote');
+    sel.options[0].text = auto ? 'Automatic: ' + auto.Name + '  (' + auto.width + '×' + auto.height + ')'
+                               : 'Automatic: no matrix found - choose one';
+    var m = sel.value ? models.filter(function (x) { return x.Name === sel.value; })[0] : auto;
+    if (!m) {
+      note.innerHTML = '<span class="text-danger fw-semibold">No model is at least 16×8 pixels. Choose the model for your matrix, or the display won\'t start.</span>';
+    } else if ((+m.height || 0) < 8 || (+m.width || 0) < 16) {
+      note.innerHTML = '<span class="text-warning-emphasis fw-semibold">' + escapeHtml(m.Name) + ' is only ' + m.width + '×' + m.height +
+        ' pixels. The map needs a matrix (128×64 or bigger is best).</span>';
+    } else {
+      note.textContent = '';
+    }
+  }
   fetch('/api/overlays/models').then(function (r) { return r.json(); }).then(function (list) {
     var sel = $('#sModel'), cur = saved.ModelName || '';
-    (list || []).forEach(function (m) {
-      if (m && m.Name && !Array.prototype.some.call(sel.options, function (o) { return o.value === m.Name; }))
+    models = (list || []).filter(function (m) { return m && m.Name; });
+    models.forEach(function (m) {
+      if (!Array.prototype.some.call(sel.options, function (o) { return o.value === m.Name; }))
         sel.appendChild(new Option(m.Name + (m.width ? '  (' + m.width + '×' + m.height + ')' : ''), m.Name));
     });
     sel.value = cur;
+    modelNote();
+  }).catch(function () {});
+  $('#sModel').addEventListener('change', modelNote);
+  // the Text effect's color effects and palettes came with FPP 10.2
+  fetch('/api/overlays/effects/Text').then(function (r) { return r.ok ? r.text() : null; }).then(function (t) {
+    if (t === null || t.indexOf('"ColorMode"') >= 0) return;
+    $('#sTextMode').disabled = $('#sTextPal').disabled = true;
+    $('#sTextFxNote').classList.remove('d-none');
   }).catch(function () {});
   fetch('/api/overlays/fonts').then(function (r) { return r.json(); }).then(function (list) {
     var sel = $('#sFont'), cur = saved.TextFont || '';

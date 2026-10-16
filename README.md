@@ -15,7 +15,7 @@ Your town can be added as one of Santa's stops ("FLYING TO: YOUR TOWN" ...
 Santa's route is built in (about 580 cities, each reached around its local
 midnight), so it needs no internet on Christmas Eve.
 
-Requires FPP 9 or newer. Uses FPP's own Python 3; no extra packages.
+Requires FPP 10 or newer. Uses FPP's own Python 3; no extra packages.
 
 ## Install
 
@@ -70,8 +70,8 @@ preview is in use, the plugin downloads:
   location & time zone** on, the plugin updates the location and time zone
   here when they change in FPP)
 * `plugindata/fpp-santa-tracker/`: the saved map data, small status
-  notes while the display runs, and the overlay model's state from before the
-  plugin first drew on it
+  notes while the display runs, the overlay model's state from before the
+  plugin first drew on it, and a note of when to retry a failed map download
 * `images/santa_map_*.png`: the current map picture, which FPP's overlay Image
   effect reads from its images folder. Old frames are deleted automatically.
 * `logs/plugin-fpp-santa-tracker.log`: the plugin's log

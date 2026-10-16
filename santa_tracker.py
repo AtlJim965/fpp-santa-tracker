@@ -735,12 +735,52 @@ WORLD_TOP_LAT = 72.0
 WORLD_BOTTOM_LAT = -60.0     # Santa's route stays north of this
 
 
+NE_TIMEOUT = 60              # seconds per map download (the preview uses less)
+MAP_RETRY_S = 600            # after a failed map download, wait this long before trying again
+MAP_RETRY_FILE = "map_retry_after.json"
+
+
+def map_retry_wait(what):
+    """Seconds left before a failed map download (`what`: land/borders) may be
+    tried again. Kept in a file, because each preview is its own process."""
+    try:
+        with open(os.path.join(DATA_DIR, MAP_RETRY_FILE)) as f:
+            return max(0.0, float(json.load(f).get(what, 0)) - time.time())
+    except Exception:
+        return 0.0
+
+
+def map_retry_note(what, failed):
+    """Remember a failed map download for MAP_RETRY_S, or forget it."""
+    path = os.path.join(ensure_data_dir(), MAP_RETRY_FILE)
+    try:
+        with open(path) as f:
+            notes = json.load(f)
+    except Exception:
+        notes = {}
+    if failed:
+        notes[what] = time.time() + MAP_RETRY_S
+    elif what not in notes:
+        return
+    else:
+        notes.pop(what)
+    try:
+        if notes:
+            with open(path, "w") as f:
+                json.dump(notes, f)
+            own(path)
+        else:
+            os.remove(path)
+    except Exception:
+        pass
+
+
 def _download_ne(name):
     last = None
     for base in NE_SOURCES:
         try:
             req = urllib.request.Request(base + name, headers={"User-Agent": "fpp-santa-tracker"})
-            with urllib.request.urlopen(req, timeout=60) as r:
+            with urllib.request.urlopen(req, timeout=NE_TIMEOUT) as r:
                 return json.loads(r.read().decode("utf-8"))
         except Exception as e:
             last = e
@@ -821,6 +861,8 @@ def land_mask():
                 mask = None
         except Exception:
             mask = None
+    if mask is None and map_retry_wait("land"):
+        return bytes(MASK_W * MASK_H)          # failed a moment ago: no land until it's retried
     if mask is None:
         try:
             m = bytearray(MASK_W * MASK_H)
@@ -836,9 +878,11 @@ def land_mask():
             os.replace(tmp, path)
             own(path)
             log("World map downloaded and saved")
+            map_retry_note("land", False)
         except Exception as e:
-            log(f"Map will show without land for now: {e}")
-            return bytes(MASK_W * MASK_H)      # not cached: try again next time
+            log(f"Map will show without land for now (trying again in {MAP_RETRY_S // 60} min): {e}")
+            map_retry_note("land", True)
+            return bytes(MASK_W * MASK_H)
     _mask_cache["mask"] = mask
     return mask
 
@@ -855,6 +899,8 @@ def border_lines():
                 lines = json.load(f)
         except Exception:
             lines = None
+    if lines is None and map_retry_wait("borders"):
+        return []
     if lines is None:
         try:
             raw = _lines(_download_ne(NE_COUNTRY_LINES)) + _lines(_download_ne(NE_STATE_LINES))
@@ -864,8 +910,10 @@ def border_lines():
                 json.dump(lines, f, separators=(",", ":"))
             os.replace(tmp, path)
             own(path)
+            map_retry_note("borders", False)
         except Exception as e:
-            log(f"Map borders unavailable for now: {e}")
+            log(f"Map borders unavailable for now (trying again in {MAP_RETRY_S // 60} min): {e}")
+            map_retry_note("borders", True)
             return []
     _mask_cache["borders"] = lines
     return lines
@@ -1146,8 +1194,27 @@ def border_pixels(view):
 _model_cache = {}
 
 
+MIN_AUTO_W, MIN_AUTO_H = 16, 8     # smallest model the automatic choice will draw on
+
+
+def pick_model(models):
+    """Overlay model left blank: the biggest matrix-shaped model (at least
+    16x8 pixels), not simply the first one, which may be a 1-pixel-tall arch
+    or string. None when there is no such model."""
+    best, best_px = None, 0
+    for m in models or []:
+        try:
+            w, h = int(m.get("width") or 0), int(m.get("height") or 0)
+        except (TypeError, ValueError, AttributeError):
+            continue
+        if m.get("Name") and w >= MIN_AUTO_W and h >= MIN_AUTO_H and w * h > best_px:
+            best, best_px = m["Name"], w * h
+    return best
+
+
 def model_info():
-    """(name, width, height) of the overlay model, asked from FPP."""
+    """(name, width, height) of the overlay model, asked from FPP. The name is
+    blank when the setting is blank and FPP has no matrix-shaped model."""
     if "info" in _model_cache:
         return _model_cache["info"]
     name = cfg_str("ModelName")
@@ -1156,8 +1223,22 @@ def model_info():
         if not name:
             with urllib.request.urlopen(f"http://{FPP_HOST}/api/overlays/models", timeout=5) as r:
                 models = json.loads(r.read().decode())
-            if models:
-                name = models[0].get("Name", "")
+            for m in models or []:
+                if isinstance(m, dict) and m.get("Name") and "width" not in m:
+                    try:                       # an FPP whose list leaves out the sizes
+                        with urllib.request.urlopen(
+                                f"http://{FPP_HOST}/api/overlays/model/{urllib.parse.quote(m['Name'])}",
+                                timeout=5) as r:
+                            d = json.loads(r.read().decode())
+                        m["width"], m["height"] = d.get("width"), d.get("height")
+                    except Exception:
+                        pass
+            name = pick_model(models)
+            if not name:
+                log("No matrix-shaped Pixel Overlay Model (at least "
+                    f"{MIN_AUTO_W}x{MIN_AUTO_H} pixels) found: choose one under Display > Overlay model")
+                _model_cache["info"] = ("", w, h)
+                return _model_cache["info"]
         if name:
             with urllib.request.urlopen(
                     f"http://{FPP_HOST}/api/overlays/model/{urllib.parse.quote(name)}",
@@ -1704,6 +1785,8 @@ def restore_model_state():
 
 def enable_model():
     name = model_info()[0]
+    if not name:
+        return
     remember_model_state(name)
     try:
         url = f"http://{FPP_HOST}/api/overlays/model/{urllib.parse.quote(name)}/state"
@@ -1715,6 +1798,8 @@ def enable_model():
 
 
 def clear_matrix():
+    if not model_info()[0]:
+        return
     try:
         fpp_command("Overlay Model Clear", [model_info()[0]])
     except Exception:
@@ -1778,6 +1863,25 @@ def scroll_seconds(text):
     return math.ceil((len(text) * char_px + W) / max(cfg_num("TextScrollSpeed", 1, 200), 1)) + 1
 
 
+_effects_cache = {}
+
+
+def text_color_effects():
+    """True when FPP's Text overlay effect takes a color effect and palette
+    (FPP 10.2 and newer). Older versions ignore them and use Text color."""
+    if "text" not in _effects_cache:
+        try:
+            with urllib.request.urlopen(f"http://{FPP_HOST}/api/overlays/effects/Text",
+                                        timeout=5) as r:
+                _effects_cache["text"] = '"ColorMode"' in r.read().decode(errors="replace")
+        except Exception:
+            return True                    # can't tell: send them, FPP ignores what it doesn't know
+        if not _effects_cache["text"] and (cfg_str("TextColorMode") or "Single") != "Single":
+            log("This FPP's Text effect has no color effects (FPP 10.2 or newer needed): "
+                "the scrolling text uses Text color")
+    return _effects_cache["text"]
+
+
 def show_text(text, duration):
     args = [model_info()[0], "Enabled", "Text",
             cfg_str("TextColor") or "#FF0000", pick_font(),
@@ -1785,7 +1889,7 @@ def show_text(text, duration):
             "Right to Left", str(int(cfg_num("TextScrollSpeed", 1, 200))),
             str(int(duration)), text]
     mode = cfg_str("TextColorMode") or "Single"
-    if mode != "Single":
+    if mode != "Single" and text_color_effects():
         args += [mode, cfg_str("TextPalette") or "Christmas", "2", "#0000FF",
                  "#00FF00", "#FFFF00", "#FF00FF", "0"]
     enable_model()
@@ -1809,6 +1913,29 @@ def wait_for_fpp(limit=90):
 
 
 # ------------------------------------------------------------- single copy
+def proc_argv(pid):
+    """A process's command line from /proc, or None when it can't be read."""
+    try:
+        with open(f"/proc/{pid}/cmdline", "rb") as f:
+            return [x.decode(errors="replace") for x in f.read().split(b"\0") if x]
+    except Exception:
+        return None
+
+
+def is_this_script(pid, argv):
+    """True when argv (process pid's command line) runs this very file, not
+    just a file with the same name."""
+    if not argv or len(argv) < 2 or not os.path.basename(argv[0]).startswith("python"):
+        return False
+    path = argv[1]
+    if not os.path.isabs(path):
+        try:
+            path = os.path.join(os.readlink(f"/proc/{pid}/cwd"), path)
+        except OSError:
+            return False
+    return os.path.realpath(path) == os.path.realpath(SCRIPT_PATH)
+
+
 def running_copies():
     """[(pid, argv)] of other copies of this script that drive the matrix."""
     me = os.getpid()
@@ -1816,23 +1943,35 @@ def running_copies():
     for pid in os.listdir("/proc"):
         if not pid.isdigit() or int(pid) == me:
             continue
-        try:
-            with open(f"/proc/{pid}/cmdline", "rb") as f:
-                argv = [x.decode(errors="replace") for x in f.read().split(b"\0") if x]
-        except Exception:
-            continue
-        if len(argv) < 2 or not os.path.basename(argv[0]).startswith("python"):
-            continue
-        if os.path.abspath(argv[1]) != SCRIPT_PATH and \
-                os.path.basename(argv[1]) != os.path.basename(SCRIPT_PATH):
-            continue
-        if any(a in argv for a in ("--loop", "--once")):
+        argv = proc_argv(pid)
+        if is_this_script(pid, argv) and any(a in argv for a in ("--loop", "--once")):
             found.append((int(pid), argv))
     seen = {p for p, _ in found}
     for n in run_notes():           # copies this process can't see in /proc
-        if n["pid"] not in seen and n.get("argv"):
-            found.append((n["pid"], n["argv"]))
+        if n["pid"] in seen or not n.get("argv"):
+            continue
+        if proc_argv(n["pid"]) is not None:
+            continue                # visible, and not this script: a stale note, the pid reused
+        found.append((n["pid"], n["argv"]))
     return found
+
+
+RESUME_AT = re.compile(r"[A-Za-z0-9 _:.+\-]{1,40}$")
+
+
+def resume_argv(argv):
+    """The command that puts the running display back after a Show Once,
+    rebuilt from the replaced copy's allowed options (--mode, --at), never run
+    as found."""
+    out = [PYTHON, SCRIPT_PATH, "--loop"]
+    opts = list(argv or [])
+    for opt, ok in (("--mode", lambda v: v in ("map", "text", "both")),
+                    ("--at", lambda v: bool(RESUME_AT.match(v)))):
+        if opt in opts[:-1]:
+            v = opts[opts.index(opt) + 1]
+            if ok(v):
+                out += [opt, v]
+    return out
 
 
 def _running(pid):
@@ -1968,8 +2107,18 @@ def relaunch(argv):
     try:
         env = dict(os.environ, SANTA_QUIET="1")
         with open(LOG_FILE, "a") as logf:
-            subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-                             stderr=logf, env=env, start_new_session=True, close_fds=True)
+            child = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                                     stderr=logf, env=env, start_new_session=True, close_fds=True)
+        # Leave the status note the new copy will take over, so the settings
+        # page keeps showing Running while it starts up instead of Stopped
+        try:
+            path = os.path.join(ensure_data_dir(), f"run_{child.pid}.json")
+            with open(path, "w") as f:
+                json.dump({"mode": "loop", "resuming": False, "started": int(time.time()),
+                           "argv": argv}, f)
+            os.chmod(path, 0o644)
+        except Exception:
+            pass
         log("Resumed the running display")
     except Exception as e:
         log(f"Couldn't resume the running display: {e}")
@@ -2064,6 +2213,8 @@ def main():
             fake_start + (time.time() * 1000 - real_start)
 
     if a.preview_json or a.preview or a.dry_run:
+        global NE_TIMEOUT
+        NE_TIMEOUT = 10                       # don't keep the settings page waiting
         st = santa_status(dests, now_ms())
         text = santa_message(st)
         if a.dry_run:
@@ -2090,6 +2241,11 @@ def main():
         return 0
 
     # ---- drive the matrix ----
+    wait_for_fpp()
+    if not model_info()[0]:
+        # checked before replacing a running copy or leaving a status note
+        log("Not starting: no overlay model to draw on")
+        return 1
     resume = None
     copies = running_copies()
     if a.once and any("--once" in argv for _p, argv in copies) and \
@@ -2125,7 +2281,6 @@ def main():
     signal.signal(signal.SIGINT, on_term)
     signal.signal(signal.SIGUSR1, on_replaced)
 
-    wait_for_fpp()
     mode = a.mode or cfg_str("DisplayMode").lower() or "map"
     if mode not in ("map", "text", "both"):
         mode = "map"
@@ -2166,7 +2321,9 @@ def main():
                         shown = None
                         while True:
                             if png != shown:
-                                show_image(cv, max(0.0, end - time.time()) + 3)
+                                # handing back to the running display: keep the
+                                # last picture up until it draws its own, not dark
+                                show_image(cv, 0 if resume else max(0.0, end - time.time()) + 3)
                                 shown = png
                             left = end - time.time()
                             if left <= 0.5:
@@ -2210,7 +2367,7 @@ def main():
             except Exception:
                 pass
         if resume:
-            relaunch(resume)
+            relaunch(resume_argv(resume))
         elif a.once and not replaced and not running_copies():
             # a Show Once / Preview finished on its own with nothing to hand
             # the matrix back to

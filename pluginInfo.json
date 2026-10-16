@@ -17,21 +17,6 @@
     },
     "versions": [
         {
-            "minFPPVersion": "9.0",
-            "maxFPPVersion": "9.99",
-            "branch": "main",
-            "sha": "",
-            "platforms": [
-                "Raspberry Pi",
-                "BeagleBone Black",
-                "BeagleBone 64",
-                "Armbian",
-                "Debian",
-                "Ubuntu",
-                "Fedora"
-            ]
-        },
-        {
             "minFPPVersion": "10.0",
             "maxFPPVersion": "0",
             "branch": "main",
@@ -53,19 +38,19 @@
             {
                 "to": "raw.githubusercontent.com",
                 "what": "Downloads of Natural Earth map files (coastlines, lakes, borders). No settings or show data.",
-                "why": "To draw the map. Downloaded once and saved.",
+                "why": "to draw the map (downloaded once, then saved)",
                 "alwaysOn": false
             },
             {
                 "to": "cdn.jsdelivr.net",
                 "what": "The same map files, only if the sources before it fail.",
-                "why": "Fallback source for the world map.",
+                "why": "to get the map files when raw.githubusercontent.com fails",
                 "alwaysOn": false
             },
             {
                 "to": "d2ad6b4ur7yvpq.cloudfront.net",
                 "what": "The same map files, only if the sources before it fail.",
-                "why": "Fallback source for the world map.",
+                "why": "to get the map files when the sources before it fail",
                 "alwaysOn": false
             }
         ],

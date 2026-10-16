@@ -146,7 +146,12 @@
   <h3 id="fsth-display">Display</h3>
   <dl>
     <dt>Overlay model</dt>
-    <dd>The Pixel Overlay Model (your matrix) to draw on.</dd>
+    <dd>The Pixel Overlay Model (your matrix) to draw on. <b>Automatic</b>
+      (the default) uses the biggest model that is at least 16x8 pixels and
+      shows its name, so an arch or a string of lights is never picked by
+      mistake. If FPP has no model that size, choose one, or the display won't
+      start. The page warns when the chosen model is too thin for the map, and
+      the preview names the model it draws for.</dd>
     <dt>What to show on the matrix</dt>
     <dd><b>Map with info panel</b> (default), <b>Scrolling text</b>, or
       <b>Map, then scrolling text</b> (the map for <b>Map seconds</b>, then the
@@ -167,7 +172,9 @@
     <dd>Defaults: FreeSansBold, 24 and 40.</dd>
     <dt>Text color, Color effect and Color effect palette</dt>
     <dd>A single color (default red), or one of FPP's color effects (per
-      letter, gradient, sparkle, chase ...) using the chosen palette.</dd>
+      letter, gradient, sparkle, chase ...) using the chosen palette. Color
+      effects need FPP 10.2 or newer; on FPP 10.0 and 10.1 they are greyed out
+      and the text uses <b>Text color</b>.</dd>
   </dl>
 
   <h3 id="fsth-advanced">Advanced</h3>
