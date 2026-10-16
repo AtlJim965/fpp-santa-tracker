@@ -24,9 +24,6 @@ heading when the change is released.
 * **Help** button on the settings page (or press **F1**): a help page that
   describes each setting, with links at the top to each section and the
   preview at the bottom.
-* **FPP 9 support**: the Plugin Manager now offers the plugin on FPP 9 as
-  well as FPP 10 (tested on FPP 9: settings page, commands, Show on matrix,
-  Start/Stop, Run live with the globe, uninstall).
 * **Release Notes** link in FPP's Plugin Manager for updates (the commits
   since the installed version).
 * **Built-in route**: Santa's route is now part of the plugin (`route.json`,
@@ -70,6 +67,9 @@ heading when the change is released.
 
 ### Changed
 
+* Requires FPP 10 or newer: the Plugin Manager no longer offers the plugin on
+  FPP 9, which has no overlay **Image** effect, so the map and info panel
+  can't be shown there (only the scrolling text could).
 * The countdown to your town on the panel now says "LOCAL IN 6H 48M"
   instead of "DEST IN 6H 48M", so it doesn't read as the time to the stop
   named above it.

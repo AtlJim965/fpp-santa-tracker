@@ -17,21 +17,6 @@
     },
     "versions": [
         {
-            "minFPPVersion": "9.0",
-            "maxFPPVersion": "9.99",
-            "branch": "main",
-            "sha": "",
-            "platforms": [
-                "Raspberry Pi",
-                "BeagleBone Black",
-                "BeagleBone 64",
-                "Armbian",
-                "Debian",
-                "Ubuntu",
-                "Fedora"
-            ]
-        },
-        {
             "minFPPVersion": "10.0",
             "maxFPPVersion": "0",
             "branch": "main",

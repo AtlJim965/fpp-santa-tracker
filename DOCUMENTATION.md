@@ -41,12 +41,13 @@ one of his stops, so the matrix shows "FLYING TO: YOUR TOWN" and then
 
 ## Requirements
 
-* FPP 9 or newer
+* FPP 10 or newer. The map is drawn with FPP's overlay **Image** effect,
+  which FPP 9 doesn't have.
 * A Pixel Overlay Model for the matrix (Input/Output Setup > Pixel Overlay
   Models). A panel about 128x64 or bigger shows the map and the panel
   together best.
-* Internet access for the first download of the map data, and for Santa's
-  route on Christmas Eve
+* Internet access for the first download of the map data (Santa's route is
+  built in, so Christmas Eve needs no internet)
 * No extra packages: the plugin uses FPP's own Python 3
 
 ## Install, update and uninstall
