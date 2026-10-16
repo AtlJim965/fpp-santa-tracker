@@ -67,6 +67,15 @@ heading when the change is released.
 
 ### Changed
 
+* A failed map download is retried after 10 minutes instead of on every
+  update, and the settings page's preview gives up on it sooner, so an FPP
+  without internet doesn't slow the display or the page.
+* Putting the running display back after **Show Once** is safer: the plugin
+  only counts processes that run its own file, and restarts the display with
+  a command it builds itself (only the **--mode** and **--at** options carried
+  over).
+* The privacy note's reasons are worded the way fpp-data asks ("to draw the
+  map ...").
 * **Overlay model** left blank (now shown as **Automatic**) uses the biggest
   model at least 16x8 pixels, and the list shows which one, instead of FPP's
   first model, which could be a 1-pixel-tall arch. With no model that size

@@ -70,8 +70,8 @@ preview is in use, the plugin downloads:
   location & time zone** on, the plugin updates the location and time zone
   here when they change in FPP)
 * `plugindata/fpp-santa-tracker/`: the saved map data, small status
-  notes while the display runs, and the overlay model's state from before the
-  plugin first drew on it
+  notes while the display runs, the overlay model's state from before the
+  plugin first drew on it, and a note of when to retry a failed map download
 * `images/santa_map_*.png`: the current map picture, which FPP's overlay Image
   effect reads from its images folder. Old frames are deleted automatically.
 * `logs/plugin-fpp-santa-tracker.log`: the plugin's log

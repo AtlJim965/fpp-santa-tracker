@@ -385,7 +385,7 @@ downloads:
 | Path | What it is |
 |---|---|
 | `config/plugin.fpp-santa-tracker` | Your settings. With **Follow FPP's location & time zone** on, the plugin updates the location and time zone here when they change in FPP. Kept on uninstall. |
-| `plugindata/fpp-santa-tracker/` | The saved map data, small status notes while the display runs, and the overlay model's state from before the plugin first drew on it |
+| `plugindata/fpp-santa-tracker/` | The saved map data, small status notes while the display runs, the overlay model's state from before the plugin first drew on it, and `map_retry_after.json` (when to retry a failed map download) |
 | `images/santa_map_*.png` | The current map picture, which FPP's overlay Image effect reads. Old frames are deleted automatically. |
 | `logs/plugin-fpp-santa-tracker.log` | The plugin's log (Status/Control > Logs) |
 
@@ -440,7 +440,9 @@ cut with the wrong date. Turn on NTP under **Settings > Time** (or run
 GitHub fail with "certificate has expired".
 
 **The map shows no land.** The map data hasn't downloaded yet. Check that FPP
-has internet access, and look in the plugin log.
+has internet access, and look in the plugin log. After a failed download the
+plugin waits 10 minutes before trying again, so it doesn't slow every
+update; to try at once, delete `plugindata/fpp-santa-tracker/map_retry_after.json`.
 
 **Anything else.** Look in `logs/plugin-fpp-santa-tracker.log` (Status/Control
 > Logs).

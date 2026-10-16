@@ -14,8 +14,8 @@ anything outside its own folder, update both scripts in the same change:
    - overlay model state (saved in `plugindata/.../model_state.json`, put back
      by `restore_model_state()` on stop)
    - `images/santa_map_*.png`
-   - `plugindata/fpp-santa-tracker/` (map cache, `run_*.json` status
-     notes, `model_state.json`, `.commands_sha256`)
+   - `plugindata/fpp-santa-tracker/` (map cache, `map_retry_after.json`,
+     `run_*.json` status notes, `model_state.json`, `.commands_sha256`)
    - `logs/plugin-fpp-santa-tracker.log*`
    - fppd's registered commands (restartFlag; FPP's unload skips plugins
      without a callbacks script)
