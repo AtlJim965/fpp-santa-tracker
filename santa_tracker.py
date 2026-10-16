@@ -1146,8 +1146,27 @@ def border_pixels(view):
 _model_cache = {}
 
 
+MIN_AUTO_W, MIN_AUTO_H = 16, 8     # smallest model the automatic choice will draw on
+
+
+def pick_model(models):
+    """Overlay model left blank: the biggest matrix-shaped model (at least
+    16x8 pixels), not simply the first one, which may be a 1-pixel-tall arch
+    or string. None when there is no such model."""
+    best, best_px = None, 0
+    for m in models or []:
+        try:
+            w, h = int(m.get("width") or 0), int(m.get("height") or 0)
+        except (TypeError, ValueError, AttributeError):
+            continue
+        if m.get("Name") and w >= MIN_AUTO_W and h >= MIN_AUTO_H and w * h > best_px:
+            best, best_px = m["Name"], w * h
+    return best
+
+
 def model_info():
-    """(name, width, height) of the overlay model, asked from FPP."""
+    """(name, width, height) of the overlay model, asked from FPP. The name is
+    blank when the setting is blank and FPP has no matrix-shaped model."""
     if "info" in _model_cache:
         return _model_cache["info"]
     name = cfg_str("ModelName")
@@ -1156,8 +1175,12 @@ def model_info():
         if not name:
             with urllib.request.urlopen(f"http://{FPP_HOST}/api/overlays/models", timeout=5) as r:
                 models = json.loads(r.read().decode())
-            if models:
-                name = models[0].get("Name", "")
+            name = pick_model(models)
+            if not name:
+                log("No matrix-shaped Pixel Overlay Model (at least "
+                    f"{MIN_AUTO_W}x{MIN_AUTO_H} pixels) found: choose one under Display > Overlay model")
+                _model_cache["info"] = ("", w, h)
+                return _model_cache["info"]
         if name:
             with urllib.request.urlopen(
                     f"http://{FPP_HOST}/api/overlays/model/{urllib.parse.quote(name)}",
@@ -1704,6 +1727,8 @@ def restore_model_state():
 
 def enable_model():
     name = model_info()[0]
+    if not name:
+        return
     remember_model_state(name)
     try:
         url = f"http://{FPP_HOST}/api/overlays/model/{urllib.parse.quote(name)}/state"
@@ -1715,6 +1740,8 @@ def enable_model():
 
 
 def clear_matrix():
+    if not model_info()[0]:
+        return
     try:
         fpp_command("Overlay Model Clear", [model_info()[0]])
     except Exception:
@@ -1778,6 +1805,25 @@ def scroll_seconds(text):
     return math.ceil((len(text) * char_px + W) / max(cfg_num("TextScrollSpeed", 1, 200), 1)) + 1
 
 
+_effects_cache = {}
+
+
+def text_color_effects():
+    """True when FPP's Text overlay effect takes a color effect and palette
+    (FPP 10.2 and newer). Older versions ignore them and use Text color."""
+    if "text" not in _effects_cache:
+        try:
+            with urllib.request.urlopen(f"http://{FPP_HOST}/api/overlays/effects/Text",
+                                        timeout=5) as r:
+                _effects_cache["text"] = '"ColorMode"' in r.read().decode(errors="replace")
+        except Exception:
+            return True                    # can't tell: send them, FPP ignores what it doesn't know
+        if not _effects_cache["text"] and (cfg_str("TextColorMode") or "Single") != "Single":
+            log("This FPP's Text effect has no color effects (FPP 10.2 or newer needed): "
+                "the scrolling text uses Text color")
+    return _effects_cache["text"]
+
+
 def show_text(text, duration):
     args = [model_info()[0], "Enabled", "Text",
             cfg_str("TextColor") or "#FF0000", pick_font(),
@@ -1785,7 +1831,7 @@ def show_text(text, duration):
             "Right to Left", str(int(cfg_num("TextScrollSpeed", 1, 200))),
             str(int(duration)), text]
     mode = cfg_str("TextColorMode") or "Single"
-    if mode != "Single":
+    if mode != "Single" and text_color_effects():
         args += [mode, cfg_str("TextPalette") or "Christmas", "2", "#0000FF",
                  "#00FF00", "#FFFF00", "#FF00FF", "0"]
     enable_model()
@@ -2132,6 +2178,9 @@ def main():
     map_secs = a.seconds if a.seconds else cfg_num("MapSeconds", 3, 3600)
     refresh = cfg_num("RefreshSeconds", 5, 3600)
     name, W, H = model_info()
+    if not name:
+        log("Not starting: no overlay model to draw on")
+        return 1
     log(f"Started ({'running display' if a.loop else 'show once'}, {mode}, "
         f"model '{name}' {W}x{H}"
         + (f", simulating {a.at}" if a.at else "") + ")")

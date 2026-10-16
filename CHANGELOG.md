@@ -67,6 +67,15 @@ heading when the change is released.
 
 ### Changed
 
+* **Overlay model** left blank (now shown as **Automatic**) uses the biggest
+  model at least 16x8 pixels, and the list shows which one, instead of FPP's
+  first model, which could be a 1-pixel-tall arch. With no model that size
+  the display doesn't start and the page asks you to choose one. The page
+  warns when the chosen model is too thin for the map, and the preview names
+  the model it draws for.
+* **Color effect** and **Color effect palette** (scrolling text) are greyed
+  out on FPP 10.0 and 10.1, which don't have them, and the text uses **Text
+  color** there.
 * Requires FPP 10 or newer: the Plugin Manager no longer offers the plugin on
   FPP 9, which has no overlay **Image** effect, so the map and info panel
   can't be shown there (only the scrolling text could).

@@ -192,7 +192,7 @@ The per-line colors:
 
 | Setting | Key | Default | Notes |
 |---|---|---|---|
-| Overlay model | `ModelName` | first model | The Pixel Overlay Model to draw on |
+| Overlay model | `ModelName` | Automatic | The Pixel Overlay Model to draw on. **Automatic** uses the biggest model at least 16x8 pixels (never an arch or a string) and the list shows which one; with no model that size, choose one or the display won't start. The page warns when the chosen model is too thin, and the preview names the model. |
 | What to show on the matrix | `DisplayMode` | Map with info panel | Or **Scrolling text** / **Map, then scrolling text**. This is where scrolling text is turned on. |
 | Map seconds | `MapSeconds` | 20 | How long the map shows before the text, in "Map, then scrolling text" mode |
 | Update every (seconds) | `RefreshSeconds` | 30 | Under the preview, next to **Run live from this moment**. How often the matrix redraws (5-3600): the running display, **Show on matrix**, **Show Once** and the map part of "Map, then scrolling text". 15 is a good choice for Christmas Eve. The matrix only reloads when the picture has changed. |
@@ -211,6 +211,9 @@ text** or **Map, then scrolling text**.
 | Text color | `TextColor` | `#FF0000` |
 | Color effect | `TextColorMode` | Single |
 | Color effect palette | `TextPalette` | Christmas |
+
+**Color effect** and **Color effect palette** need FPP 10.2 or newer. On FPP
+10.0 and 10.1 they are greyed out and the text uses **Text color**.
 
 ### Advanced
 
@@ -391,6 +394,11 @@ display stops (Stop, or a Show Once or Preview finishing), the model is put
 back the way it was, so your sequences show through again.
 
 ## Troubleshooting
+
+**The display won't start, and the log says "no overlay model to draw on".**
+**Overlay model** is on **Automatic** and FPP has no Pixel Overlay Model at
+least 16x8 pixels. Choose your matrix's model under **Display**, or create
+one (Input/Output Setup > Pixel Overlay Models).
 
 **Your town is in the wrong place.** Check the nearest stop shown under
 **Location**. A town in Asia usually means the longitude is missing its
